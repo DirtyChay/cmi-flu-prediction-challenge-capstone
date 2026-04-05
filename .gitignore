@@ -1,0 +1,6 @@
+__pycache__/
+.idea/
+data/*
+!data/.gitkeep
+.env
+.DS_Store

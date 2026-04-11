@@ -1,0 +1,69 @@
+Task 4.1: Predict magnitude of antibody response - H1N1 A/Victoria/4897/2022 (D28)
+Feature: H1N1 A/Victoria/4897/2022
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Absolute value | Metric: Spearman correlation
+Description: Post-vac HAI of the H1N1 vaccine strain at Day 28
+
+Task 4.2: Predict magnitude of antibody response - H3N2 A/Massachusetts/18/2022 (D28)
+Feature: H3N2 A/Massachusetts/18/2022
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Absolute value | Metric: Spearman correlation
+Description: Post-vac HAI of the H3N2 vaccine strain at Day 28
+
+Task 4.3: Predict magnitude of antibody response - Vic B/Austria/1359417/2021 (D28)
+Feature: Vic B/Austria/1359417/2021
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Absolute value | Metric: Spearman correlation
+Description: Post-vac HAI of the B Victoria vaccine strain at Day 28
+
+Task 4.4: Predict magnitude of antibody response - all 3 vaccine strains (D28)
+Feature: 3 vaccine strains
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: Yes
+Assay: HAI | Measure: Geo mean | Metric: Spearman correlation
+Description: Geo mean of HAI across the 3 vaccine strains (4.1, 4.2, 4.3) at Day 28
+
+Task 4.5: Predict antibody breadth - all variants (D28)
+Feature: All variants
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: Yes
+Assay: HAI | Measure: Geo mean | Metric: Spearman correlation
+Description: Geomean HAI across all variants
+
+Task 4.6: Predict antibody breadth - all variants (D28)
+Feature: All variants
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Percentage | Metric: Spearman correlation
+Description: Percentage of variants with HAI >= 40
+
+Task 4.7: Predict antibody durability - H1N1 A/Victoria/4897/2022 (D365)
+Feature: H1N1 A/Victoria/4897/2022
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Post-vac HAI | Metric: Spearman correlation
+Description: Post-vac HAI of the H1N1 vaccine strain at Day 365
+
+Task 4.8: Predict antibody durability - H3N2 A/Massachusetts/18/2022 (D365)
+Feature: H3N2 A/Massachusetts/18/2022
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Post-vac HAI | Metric: Spearman correlation
+Description: Post-vac HAI of the H3N2 vaccine strain at Day 365
+
+Task 4.9: Predict antibody durability - Vic B/Austria/1359417/2021 (D365)
+Feature: Vic B/Austria/1359417/2021
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Post-vac HAI | Metric: Spearman correlation
+Description: Post-vac HAI of the B Victoria vaccine strain at Day 365
+
+Task 4.10: Predict antibody durability - all 3 vaccine strains (D365)
+Feature: 3 vaccine strains
+Training data: Demographics + Day 0 + Day 7 innate
+Shortlisted: No
+Assay: HAI | Measure: Geo mean HAI | Metric: Spearman correlation
+Description: Geo mean of HAI across the 3 vaccine strains at Day 365

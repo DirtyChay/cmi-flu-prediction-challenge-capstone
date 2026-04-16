@@ -7,3 +7,6 @@ cleaned_data/*
 !cleaned_data/.gitkeep
 .env
 .DS_Store
+
+merged_data/*
+!merged_data/.gitkeep

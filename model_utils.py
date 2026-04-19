@@ -17,7 +17,7 @@ def vaccine_cols(data, strains, day):
 
 def evaluate(X, y_vals, task_label, plot_color='teal', y_axis_label='True'):
     """Fit + 5-fold CV, print metrics, show scatter, return held-out predictions."""
-    cat_cols = X.select_dtypes(include='object').columns.tolist()
+    cat_cols = X.select_dtypes(include=['object', 'string']).columns.tolist()
     if cat_cols:
         X = pd.get_dummies(X, columns=cat_cols, drop_first=True)
 

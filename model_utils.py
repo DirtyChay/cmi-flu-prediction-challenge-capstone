@@ -15,11 +15,21 @@ def vaccine_cols(data, strains, day):
     return [c for c in (f'HAI_{s}_d{day}' for s in strains) if c in data.columns]
 
 
-def evaluate(X, y_vals, task_label, plot_color='teal', y_axis_label='True'):
-    """Fit + 5-fold CV, print metrics, show scatter, return held-out predictions."""
-    cat_cols = X.select_dtypes(include='object').columns.tolist()
+def _encode(X):
+    cat_cols = X.select_dtypes(include=['object', 'string']).columns.tolist()
     if cat_cols:
         X = pd.get_dummies(X, columns=cat_cols, drop_first=True)
+    return X
+
+
+def evaluate(X, y_vals, task_label, plot_color='teal', y_axis_label='True'):
+    """Fit + 5-fold CV, print metrics, show scatter.
+
+    Returns (y_pred_cv, model) where `model` is a pipeline fit on all of
+    (X, y_vals) — the same training data used for CV — ready to apply to
+    held-out / challenge inputs via predict_challenge().
+    """
+    X = _encode(X)
 
     model = Pipeline([
         ('imputer', SimpleImputer(strategy='median')),
@@ -48,4 +58,22 @@ def evaluate(X, y_vals, task_label, plot_color='teal', y_axis_label='True'):
     plt.tight_layout()
     plt.show()
 
-    return y_pred_cv
+    model.fit(X, y_vals)
+    return y_pred_cv, model
+
+
+def predict_challenge(model, challenge_data, feature_cols):
+    """Apply an already-trained model to the challenge set.
+
+    Encodes + reindexes challenge columns to match the model's training
+    feature set. Columns missing from challenge are filled by the model's
+    own imputer (trained-data medians). Returns predictions in the same
+    space the model was trained in (log2 HAI).
+    """
+    train_columns = model.feature_names_in_
+
+    existing = [c for c in feature_cols if c in challenge_data.columns]
+    X_challenge = _encode(challenge_data[existing].copy())
+    X_challenge = X_challenge.reindex(columns=train_columns)
+
+    return model.predict(X_challenge)

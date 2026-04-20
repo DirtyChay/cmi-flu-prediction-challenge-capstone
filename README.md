@@ -16,3 +16,9 @@ kaggle competitions download -c cmi-flu-internal-prediction-challenge
 ```
 
 Extract files and move them to the data folder.
+
+Submission:
+
+Where a geometric mean is required, the geometric mean is calculated as exp(mean(log(values+1))).
+
+To submit, drag and drop the csv on Kaggle.

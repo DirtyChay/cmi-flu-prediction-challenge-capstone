@@ -1,5 +1,6 @@
 __pycache__/
 .claude/
+install.cmd
 .idea/
 data/*
 !data/.gitkeep

@@ -1,7 +1,7 @@
 View the challenge here:
 
 ```
-https://www.kaggle.com/competitions/cmi-flu-internal-prediction-challenge/data
+https://www.kaggle.com/competitions/cmi-flu-internal-challenge-task-4
 ```
 
 To download the data:

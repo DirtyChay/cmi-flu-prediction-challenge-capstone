@@ -5,3 +5,4 @@ pandas
 pyarrow
 scipy
 scikit-learn
+combat

@@ -3,6 +3,7 @@ __pycache__/
 install.cmd
 .idea/
 data/*
+automl_models/models/
 !data/.gitkeep
 cleaned_data/*
 !cleaned_data/.gitkeep
@@ -10,4 +11,4 @@ cleaned_data/*
 .DS_Store
 
 #merged_data/*
-!merged_data/.gitkeep
+!merged_data/.gitkeeppath/to/giant/file

@@ -5,8 +5,14 @@ install.cmd
 data/*
 automl_models/models/
 !data/.gitkeep
+
 cleaned_data/*
 !cleaned_data/.gitkeep
+!cleaned_data/challenge_*
+!cleaned_data/hai_cleaned.csv
+!cleaned_data/participants_cleaned.csv
+!cleaned_data/transcriptomics_cleaned.csv
+
 .env
 .DS_Store
 

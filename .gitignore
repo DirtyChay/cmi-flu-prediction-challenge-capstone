@@ -12,6 +12,7 @@ cleaned_data/*
 !cleaned_data/hai_cleaned.csv
 !cleaned_data/participants_cleaned.csv
 !cleaned_data/transcriptomics_cleaned.csv
+!cleaned_data/train_combined.csv
 
 .env
 .DS_Store

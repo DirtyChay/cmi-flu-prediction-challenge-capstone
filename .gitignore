@@ -3,7 +3,7 @@ __pycache__/
 install.cmd
 .idea/
 data/*
-automl_models/models/
+#automl_models/models/
 !data/.gitkeep
 
 cleaned_data/*

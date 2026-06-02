@@ -73,23 +73,30 @@ export function HeatmapGrid({
     <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'inline-block', minWidth: '100%' }}>
         {/* Header row */}
-        <div style={{ display: 'flex', paddingLeft: rowLabelWidth, alignItems: 'flex-end', height: rotateColLabels ? 84 : undefined }}>
+        <div style={{ display: 'flex', paddingLeft: rowLabelWidth, alignItems: 'flex-end', height: rotateColLabels ? 100 : undefined }}>
           {colLabels.map((c, ci) => (
             <div key={ci} title={colTitleAt(ci)} style={{
               flex: 1, minWidth: cellMinWidth,
-              color: '#94A3B8', fontSize: 10, padding: rotateColLabels ? 0 : '4px 2px',
+              position: rotateColLabels ? 'relative' : undefined,
+              padding: rotateColLabels ? 0 : '4px 2px',
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'center',
-              height: rotateColLabels ? 84 : undefined,
+              height: rotateColLabels ? 100 : undefined,
             }}>
               <span style={rotateColLabels ? {
-                transform: 'rotate(-55deg)',
-                transformOrigin: 'bottom center',
+                position: 'absolute',
+                bottom: 6,
+                left: '50%',
+                transform: 'rotate(-45deg)',
+                transformOrigin: 'left bottom',
                 whiteSpace: 'nowrap',
-                display: 'inline-block',
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#CBD5E1',
               } : {
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', width: '100%',
+                fontSize: 10, color: '#94A3B8',
               }}>
                 {c}
               </span>

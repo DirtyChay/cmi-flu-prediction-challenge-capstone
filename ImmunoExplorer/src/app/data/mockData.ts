@@ -386,6 +386,37 @@ export function getScatterData(xField: ScatterField, yField: ScatterField, color
   }).filter(Boolean) as { x: number; y: number; group: string; pid: string }[];
 }
 
+// ── Chat context data ────────────────────────────────────────────────────────
+
+// Q1: biggest antibody boost — median log2 rise (D28-D0) per strain, ≥20 pairs
+export const strainBoost = STRAINS.map((strain, sIdx) => {
+  const pairs = (byStrain.get(sIdx) ?? []).filter(r => r.d0 != null && r.d28 != null);
+  const rises = pairs.map(r => (r.d28 as number) - (r.d0 as number));
+  return { strain, medianRise: rises.length >= 20 ? +median(rises).toFixed(2) : null, n: pairs.length };
+}).filter(s => s.medianRise !== null).sort((a, b) => (b.medianRise ?? 0) - (a.medianRise ?? 0));
+
+// Q2: male vs female mean log2 rise across all strains
+export const sexResponse = (['Male', 'Female'] as const).map(sex => {
+  const rises: number[] = [];
+  for (const recs of byStrain.values())
+    for (const r of recs)
+      if (r.d0 != null && r.d28 != null && participants[r.pIdx].sex === sex)
+        rises.push(r.d28 - r.d0);
+  return { sex, meanRise: rises.length ? +(rises.reduce((a, b) => a + b, 0) / rises.length).toFixed(2) : 0 };
+});
+
+// Q4: median D0 baseline titer by age group across all strains
+const AGE_BRACKETS = [{ label: '18–35', lo: 18, hi: 36 }, { label: '36–55', lo: 36, hi: 56 }, { label: '56+', lo: 56, hi: 200 }];
+export const ageBaseline = AGE_BRACKETS.map(({ label, lo, hi }) => {
+  const vals: number[] = [];
+  for (const recs of byStrain.values())
+    for (const r of recs) {
+      const age = participants[r.pIdx].age;
+      if (r.d0 != null && age >= lo && age < hi) vals.push(r.d0);
+    }
+  return { age: label, medianD0: vals.length ? +median(vals).toFixed(2) : null };
+});
+
 // ── Participant deep-dive ───────────────────────────────────────────────────
 export function getParticipantTiters(pid: string) {
   const recs = byParticipant.get(pid);

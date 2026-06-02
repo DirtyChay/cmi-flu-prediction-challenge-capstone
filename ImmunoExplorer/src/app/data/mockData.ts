@@ -32,6 +32,16 @@ export function strainGroup(strain: string): string {
   return strain.split(' ')[0];
 }
 
+// Compact label, e.g. "H1N1 A/California/7/2009" -> "California '09".
+export function strainShortLabel(strain: string): string {
+  const rest = strain.split(' ').slice(1).join(' '); // drop subtype prefix
+  const segs = rest.split('/');
+  const location = segs[1] ?? rest;
+  const year = segs[segs.length - 1] ?? '';
+  const yy = /^\d{4}$/.test(year) ? `'${year.slice(2)}` : year;
+  return yy ? `${location} ${yy}` : location;
+}
+
 const GROUP_COLORS: Record<string, string> = {
   H1N1: '#2E86AB', H3N2: '#00D9C0', Vic: '#F4A261', Yam: '#8B5CF6', Anc: '#06D6A0',
 };
@@ -298,21 +308,44 @@ function day0Map(strain: string): Map<string, number> {
   return m;
 }
 
-const day0Maps = new Map(CORR_STRAINS.map(s => [s, day0Map(s)]));
+function strainYear(s: string): number {
+  const segs = s.split('/');
+  const y = segs[segs.length - 1];
+  return /^\d{4}$/.test(y) ? +y : 0;
+}
 
-export const correlationMatrix = CORR_STRAINS.map(s1 =>
-  CORR_STRAINS.map(s2 => {
-    const m1 = day0Maps.get(s1)!;
-    const m2 = day0Maps.get(s2)!;
-    const xs: number[] = [];
-    const ys: number[] = [];
-    for (const [pid, v1] of m1) {
-      const v2 = m2.get(pid);
-      if (v2 != null) { xs.push(v1); ys.push(v2); }
-    }
-    return { strain1: s1, strain2: s2, r: +pearson(xs, ys).toFixed(3) };
-  })
-);
+// Antigenic groups available for the correlation view (only those with strains).
+export const CORR_GROUPS = GROUP_ORDER
+  .filter(g => STRAINS.some(s => strainGroup(s) === g))
+  .map(g => ({ value: g, label: GROUP_LABEL[g] }));
+
+// Day-0 titer correlation among strains WITHIN one antigenic group.
+// Keeps the best-measured strains (so r is meaningful) and orders them
+// chronologically so antigenic drift reads left→right / top→bottom.
+export function getGroupCorrelation(group: string, minD0 = 50, maxStrains = 20) {
+  const strains = STRAINS
+    .filter(s => strainGroup(s) === group)
+    .map(s => ({ s, n: (byStrain.get(strainIndex.get(s)!) ?? []).filter(r => r.d0 != null).length }))
+    .filter(x => x.n >= minD0)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, maxStrains)
+    .map(x => x.s)
+    .sort((a, b) => strainYear(a) - strainYear(b));
+
+  const maps = strains.map(day0Map);
+  const matrix = strains.map((_, i) =>
+    strains.map((_, j) => {
+      const xs: number[] = [];
+      const ys: number[] = [];
+      for (const [pid, v1] of maps[i]) {
+        const v2 = maps[j].get(pid);
+        if (v2 != null) { xs.push(v1); ys.push(v2); }
+      }
+      return +pearson(xs, ys).toFixed(3);
+    })
+  );
+  return { strains, matrix };
+}
 
 // ── Scatter explorer ────────────────────────────────────────────────────────
 // Fields: "Age" plus "<strain> D0" / "<strain> D28" for each core strain.

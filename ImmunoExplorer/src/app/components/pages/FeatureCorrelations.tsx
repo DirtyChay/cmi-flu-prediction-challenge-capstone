@@ -6,8 +6,9 @@ import {
 import { ChartCard, DarkSelect, DarkTooltip } from '../ChartCard';
 import { HeatmapGrid } from '../HeatmapGrid';
 import {
-  CORR_STRAINS, correlationMatrix, foldRiseByArm, VACCINE_ARMS,
+  CORR_GROUPS, getGroupCorrelation, foldRiseByArm, VACCINE_ARMS,
   getScatterData, SCATTER_FIELDS, ScatterField, CHART_COLORS, ARM_COLORS,
+  strainShortLabel,
 } from '../../data/mockData';
 
 const axisStyle = { fill: '#64748B', fontSize: 11 };
@@ -40,8 +41,11 @@ export function FeatureCorrelations() {
   const [xField, setXField] = useState<ScatterField>(SCATTER_FIELDS[1] ?? 'Age');
   const [yField, setYField] = useState<ScatterField>(SCATTER_FIELDS[3] ?? 'Age');
   const [colorBy, setColorBy] = useState<'arm' | 'sex'>('arm');
+  const [corrGroup, setCorrGroup] = useState<string>(CORR_GROUPS[0]?.value ?? '');
 
-  const corrValues = CORR_STRAINS.map((_, ri) => correlationMatrix[ri].map(c => c.r));
+  const corr = useMemo(() => getGroupCorrelation(corrGroup), [corrGroup]);
+  const corrShort = corr.strains.map(strainShortLabel);
+  const corrGroupLabel = CORR_GROUPS.find(g => g.value === corrGroup)?.label ?? corrGroup;
 
   const scatterData = useMemo(() => getScatterData(xField, yField, colorBy), [xField, yField, colorBy]);
 
@@ -57,36 +61,55 @@ export function FeatureCorrelations() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ color: '#E2E8F0', fontSize: 22, fontWeight: 600, margin: 0 }}>Feature Correlations</h1>
         <p style={{ color: '#64748B', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
-          Baseline titer relationships across participants — top {CORR_STRAINS.length} most-measured strains
+          Baseline titer relationships across participants
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-
-        {/* Correlation heatmap */}
+      {/* Correlation heatmap — full width */}
+      <div style={{ marginBottom: 20 }}>
         <ChartCard
-          title="Baseline Titer Correlations"
-          subtitle="Pearson r — Day-0 log₂ titers between strains"
+          title={`Baseline Titer Correlations — ${corrGroupLabel}`}
+          subtitle="How similarly two strains' Day-0 titers move across participants (Pearson r). Blue = rise together, red = opposite, dark = unrelated. Ordered oldest → newest."
           minHeight={260}
+          actions={
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ color: '#64748B', fontSize: 11 }}>Subtype:</span>
+              <DarkSelect value={corrGroup} onChange={setCorrGroup}
+                options={CORR_GROUPS.map(g => ({ value: g.value, label: g.label }))} />
+            </div>
+          }
         >
-          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            <HeatmapGrid
-              rowLabels={CORR_STRAINS}
-              colLabels={CORR_STRAINS}
-              values={corrValues}
-              diverging={true}
-              formatVal={v => v.toFixed(2)}
-            />
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, color: '#64748B' }}>−1</span>
+          {corr.strains.length < 2 ? (
+            <div style={{ color: '#475569', fontSize: 13, padding: '24px 0' }}>
+              Not enough well-measured strains in this subtype to compute correlations.
+            </div>
+          ) : (
+          <HeatmapGrid
+            rowLabels={corrShort}
+            colLabels={corrShort}
+            rowTitles={corr.strains}
+            colTitles={corr.strains}
+            values={corr.matrix}
+            diverging={true}
+            rotateColLabels={true}
+            cellMinWidth={40}
+            cellHeight={30}
+            rowLabelWidth={120}
+            formatVal={v => v.toFixed(2)}
+          />
+          )}
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 360 }}>
+            <span style={{ fontSize: 10, color: '#64748B' }}>−1 opposite</span>
             <div style={{
               flex: 1, height: 6, borderRadius: 3,
               background: 'linear-gradient(to right, #EF4444, #1E2130, #2E86AB)',
             }} />
-            <span style={{ fontSize: 10, color: '#64748B' }}>+1</span>
+            <span style={{ fontSize: 10, color: '#64748B' }}>+1 together</span>
           </div>
         </ChartCard>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
 
         {/* Scatter explorer */}
         <ChartCard
@@ -136,14 +159,13 @@ export function FeatureCorrelations() {
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
 
-      {/* Vaccine response: mean fold rise by arm */}
-      <ChartCard
-        title="Vaccine Response — Mean Fold Rise by Arm"
-        subtitle="Day 0 → Day 28 change in log₂ HAI titer, per antigenic group"
-        minHeight={240}
-      >
+        {/* Vaccine response: mean fold rise by arm */}
+        <ChartCard
+          title="Vaccine Response — Mean Fold Rise by Arm"
+          subtitle="Day 0 → Day 28 change in log₂ HAI titer, per antigenic group"
+          minHeight={240}
+        >
         <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
           {VACCINE_ARMS.map(arm => (
             <div key={arm} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94A3B8' }}>
@@ -164,7 +186,8 @@ export function FeatureCorrelations() {
             ))}
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
+        </ChartCard>
+      </div>
     </div>
   );
 }

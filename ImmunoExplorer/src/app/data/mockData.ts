@@ -81,8 +81,7 @@ for (const [pIdx, sIdx, d0, d28, d365] of data.titers) {
 // ── Summary / demographics ──────────────────────────────────────────────────
 export const summaryStats = {
   participants: participants.length,
-  modalities: 2, // HAI titers + transcriptomics
-  timepoints: 3, // Day 0, Day 28, Day 365
+  timepoints: 3, // Day 0, Day 28, Day 365 (HAI _d0/_d28/_d365)
   cohorts: VACCINE_ARMS.length,
 };
 

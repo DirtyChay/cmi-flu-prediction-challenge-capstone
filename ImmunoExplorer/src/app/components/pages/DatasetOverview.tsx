@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import {
-  Users, Layers, Clock, FlaskConical,
+  Users, Clock, FlaskConical,
 } from 'lucide-react';
 import { ChartCard, DarkTooltip } from '../ChartCard';
 import {
@@ -59,9 +59,8 @@ export function DatasetOverview() {
       </div>
 
       {/* Summary stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
         <StatCard icon={Users}       label="Total Participants" value={summaryStats.participants} color="#2E86AB" />
-        <StatCard icon={Layers}      label="Modalities"         value={summaryStats.modalities}  color="#00D9C0" />
         <StatCard icon={Clock}       label="Timepoints"         value={summaryStats.timepoints}  color="#F4A261" />
         <StatCard icon={FlaskConical} label="Study Cohorts"     value={summaryStats.cohorts}     color="#8B5CF6" />
       </div>

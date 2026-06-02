@@ -4,9 +4,12 @@ import { DatasetOverview } from './components/pages/DatasetOverview';
 import { HAITiterExplorer } from './components/pages/HAITiterExplorer';
 import { FeatureCorrelations } from './components/pages/FeatureCorrelations';
 import { ParticipantDeepDive } from './components/pages/ParticipantDeepDive';
+import { ChatPanel } from './components/ChatPanel';
 
 export default function App() {
   const [page, setPage] = useState<PageId>('overview');
+
+  const isChat = page === 'chat';
 
   return (
     <div style={{
@@ -22,12 +25,13 @@ export default function App() {
         marginLeft: 240,
         flex: 1,
         minHeight: '100vh',
-        overflowY: 'auto',
+        overflowY: isChat ? 'hidden' : 'auto',
       }}>
         {page === 'overview'     && <DatasetOverview />}
         {page === 'hai'          && <HAITiterExplorer />}
         {page === 'correlations' && <FeatureCorrelations />}
         {page === 'participant'  && <ParticipantDeepDive />}
+        {page === 'chat'         && <ChatPanel />}
       </main>
     </div>
   );

@@ -7,7 +7,7 @@ import { ChartCard, DarkSelect, NoData } from '../ChartCard';
 import { BoxPlotChart } from '../BoxPlotChart';
 import { HeatmapGrid } from '../HeatmapGrid';
 import {
-  STRAINS, getBoxPlotData, getHAIScatterData, haiHeatmap, ARM_COLORS, VACCINE_ARMS, strainColor,
+  STRAINS, getBoxPlotData, getHAIScatterData, getStrainSummary, haiHeatmap, ARM_COLORS, VACCINE_ARMS, strainColor,
 } from '../../data/mockData';
 
 const axisStyle = { fill: '#64748B', fontSize: 11 };
@@ -33,6 +33,7 @@ export function HAITiterExplorer() {
 
   const boxData = useMemo(() => getBoxPlotData(strain), [strain]);
   const scatterData = useMemo(() => getHAIScatterData(strain), [strain]);
+  const summary = useMemo(() => getStrainSummary(strain), [strain]);
   const color = strainColor(strain);
 
   // Heatmap: strains × vaccine arms
@@ -64,6 +65,25 @@ export function HAITiterExplorer() {
             options={STRAINS.map(s => ({ value: s, label: s }))}
           />
         </div>
+      </div>
+
+      {/* Summary strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Measured (D0)', value: summary.nD0.toLocaleString() },
+          { label: 'Measured (D28)', value: summary.nD28.toLocaleString() },
+          { label: 'Median D0', value: summary.medianD0.toFixed(2) },
+          { label: 'Median D28', value: summary.medianD28.toFixed(2) },
+          { label: 'Median Fold Rise', value: (summary.medianRise >= 0 ? '+' : '') + summary.medianRise.toFixed(2) },
+        ].map(s => (
+          <div key={s.label} style={{
+            background: '#1E2130', borderRadius: 10, border: '1px solid rgba(255,255,255,0.07)',
+            padding: '12px 14px',
+          }}>
+            <div style={{ color: '#E2E8F0', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Box plots */}

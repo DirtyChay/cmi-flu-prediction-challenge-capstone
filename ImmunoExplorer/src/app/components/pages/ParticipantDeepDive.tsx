@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ReferenceLine,
 } from 'recharts';
 import { User, Calendar, FlaskConical } from 'lucide-react';
 import { ChartCard, DarkSelect, NoData } from '../ChartCard';
@@ -122,6 +123,12 @@ export function ParticipantDeepDive() {
 
   const titers = useMemo(() => getParticipantTiters(pid), [pid]);
 
+  const foldRise = useMemo(() =>
+    titers
+      .filter(t => t.day0 != null && t.day28 != null)
+      .map(t => ({ strain: shortStrain(t.strain), rise: +((t.day28 as number) - (t.day0 as number)).toFixed(2) })),
+    [titers]);
+
   return (
     <div style={{ padding: '28px', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -151,6 +158,44 @@ export function ParticipantDeepDive() {
             <LegendItem color="#00D9C0" label="Day 365" />
           </div>
           <TiterRadar pid={pid} />
+        </ChartCard>
+      </div>
+
+      {/* Fold rise per strain */}
+      <div style={{ marginBottom: 20 }}>
+        <ChartCard title="Fold Rise by Strain" subtitle="Day 0 → Day 28 change in log₂ HAI titer" minHeight={220}>
+          {foldRise.length === 0 ? (
+            <NoData />
+          ) : (
+            <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+            <ResponsiveContainer width="100%" height={Math.max(200, foldRise.length * 22)}>
+              <BarChart data={foldRise} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="strain" type="category" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} width={150} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  content={({ active, payload }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const v = payload[0].value as number;
+                    return (
+                      <div style={{ background: '#1E2130', border: '1px solid rgba(46,134,171,0.35)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#CBD5E1' }}>
+                        <div style={{ color: '#94A3B8', marginBottom: 2 }}>{payload[0].payload.strain}</div>
+                        Δ log₂: <span style={{ color: v >= 0 ? '#06D6A0' : '#EF4444' }}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>
+                      </div>
+                    );
+                  }}
+                />
+                <ReferenceLine x={0} stroke="rgba(255,255,255,0.2)" />
+                <Bar dataKey="rise" name="Fold rise" radius={[0, 3, 3, 0]}>
+                  {foldRise.map((d, i) => (
+                    <Cell key={i} fill={d.rise >= 0 ? '#06D6A0' : '#EF4444'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          )}
         </ChartCard>
       </div>
 

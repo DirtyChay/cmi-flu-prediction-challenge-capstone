@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ScatterChart, Scatter,
+  ScatterChart, Scatter, BarChart, Bar,
 } from 'recharts';
-import { ChartCard, DarkSelect } from '../ChartCard';
+import { ChartCard, DarkSelect, DarkTooltip } from '../ChartCard';
 import { HeatmapGrid } from '../HeatmapGrid';
 import {
-  CORR_STRAINS, correlationMatrix,
+  CORR_STRAINS, correlationMatrix, foldRiseByArm, VACCINE_ARMS,
   getScatterData, SCATTER_FIELDS, ScatterField, CHART_COLORS, ARM_COLORS,
 } from '../../data/mockData';
 
@@ -137,6 +137,34 @@ export function FeatureCorrelations() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {/* Vaccine response: mean fold rise by arm */}
+      <ChartCard
+        title="Vaccine Response — Mean Fold Rise by Arm"
+        subtitle="Day 0 → Day 28 change in log₂ HAI titer, per antigenic group"
+        minHeight={240}
+      >
+        <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+          {VACCINE_ARMS.map(arm => (
+            <div key={arm} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94A3B8' }}>
+              <span style={{ width: 12, height: 3, background: ARM_COLORS[arm], display: 'inline-block', borderRadius: 2 }} />
+              {arm}
+            </div>
+          ))}
+        </div>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={foldRiseByArm} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="group" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+              label={{ value: 'Δ log₂ titer', angle: -90, position: 'insideLeft', style: { fill: '#64748B', fontSize: 10 } }} />
+            <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            {VACCINE_ARMS.map(arm => (
+              <Bar key={arm} dataKey={arm} name={arm} fill={ARM_COLORS[arm]} radius={[3, 3, 0, 0]} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
     </div>
   );
 }

@@ -3,11 +3,12 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import {
-  Users, Clock, FlaskConical,
+  Users, Clock, FlaskConical, Microscope,
 } from 'lucide-react';
 import { ChartCard, DarkTooltip } from '../ChartCard';
 import {
   summaryStats, cohortCounts, ageHistogram, sexData,
+  STRAIN_COUNT, timepointCoverage, groupCoverage,
   CHART_COLORS,
 } from '../../data/mockData';
 
@@ -59,8 +60,9 @@ export function DatasetOverview() {
       </div>
 
       {/* Summary stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         <StatCard icon={Users}       label="Total Participants" value={summaryStats.participants} color="#2E86AB" />
+        <StatCard icon={Microscope}  label="HAI Strains"        value={STRAIN_COUNT}             color="#00D9C0" />
         <StatCard icon={Clock}       label="Timepoints"         value={summaryStats.timepoints}  color="#F4A261" />
         <StatCard icon={FlaskConical} label="Study Cohorts"     value={summaryStats.cohorts}     color="#8B5CF6" />
       </div>
@@ -134,6 +136,45 @@ export function DatasetOverview() {
                 formatter={(v) => <span style={{ color: '#94A3B8', fontSize: 11 }}>{v}</span>}
               />
             </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+      </div>
+
+      {/* Assay coverage */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+
+        {/* HAI measurements per timepoint */}
+        <ChartCard title="HAI Measurements by Timepoint" subtitle="Non-empty titer values (D365 is sparser)" minHeight={200}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={timepointCoverage} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="day" tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+              <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Bar dataKey="count" name="Measurements" radius={[3, 3, 0, 0]}>
+                {timepointCoverage.map((_, i) => (
+                  <Cell key={i} fill={['#8B5CF6', '#2E86AB', '#00D9C0'][i % 3]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        {/* Strains per antigenic group */}
+        <ChartCard title="Strains per Antigenic Group" subtitle="Distinct HAI strains assayed" minHeight={200}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={groupCoverage} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="group" tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+              <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Bar dataKey="strains" name="Strains" radius={[3, 3, 0, 0]}>
+                {groupCoverage.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 

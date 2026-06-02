@@ -158,6 +158,87 @@ export function getHAIScatterData(strain: string) {
     }));
 }
 
+// ── Coverage / antigenic groups ─────────────────────────────────────────────
+function median(arr: number[]): number {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+export const STRAIN_COUNT = STRAINS.length;
+
+const GROUP_ORDER = ['H1N1', 'H3N2', 'Vic', 'Yam', 'Anc'];
+const GROUP_LABEL: Record<string, string> = {
+  H1N1: 'H1N1', H3N2: 'H3N2', Vic: 'B/Victoria', Yam: 'B/Yamagata', Anc: 'Ancestral B',
+};
+
+// Non-null HAI measurements at each timepoint (data completeness).
+export const timepointCoverage = (() => {
+  let d0 = 0, d28 = 0, d365 = 0;
+  for (const recs of byStrain.values()) {
+    for (const r of recs) {
+      if (r.d0 != null) d0++;
+      if (r.d28 != null) d28++;
+      if (r.d365 != null) d365++;
+    }
+  }
+  return [
+    { day: 'Day 0', count: d0 },
+    { day: 'Day 28', count: d28 },
+    { day: 'Day 365', count: d365 },
+  ];
+})();
+
+// Strains + total measurements per antigenic group.
+export const groupCoverage = GROUP_ORDER.map(g => {
+  let strains = 0, measurements = 0;
+  STRAINS.forEach((s, sIdx) => {
+    if (strainGroup(s) !== g) return;
+    strains++;
+    for (const r of byStrain.get(sIdx) ?? []) {
+      measurements += (r.d0 != null ? 1 : 0) + (r.d28 != null ? 1 : 0) + (r.d365 != null ? 1 : 0);
+    }
+  });
+  return { group: GROUP_LABEL[g], strains, measurements };
+}).filter(r => r.strains > 0);
+
+// Mean Day-0 → Day-28 fold rise (log₂) per antigenic group × vaccine arm.
+export const foldRiseByArm = GROUP_ORDER.map(g => {
+  const row: Record<string, number | string> = { group: GROUP_LABEL[g] };
+  let total = 0;
+  VACCINE_ARMS.forEach(arm => {
+    const rises: number[] = [];
+    STRAINS.forEach((s, sIdx) => {
+      if (strainGroup(s) !== g) return;
+      for (const r of byStrain.get(sIdx) ?? []) {
+        if (r.d0 != null && r.d28 != null && participants[r.pIdx].arm === arm) {
+          rises.push(r.d28 - r.d0);
+        }
+      }
+    });
+    total += rises.length;
+    row[arm] = rises.length ? +(rises.reduce((a, b) => a + b, 0) / rises.length).toFixed(2) : 0;
+  });
+  return total ? row : null;
+}).filter((r): r is Record<string, number | string> => r != null);
+
+// Per-strain summary used by the HAI Explorer header strip.
+export function getStrainSummary(strain: string) {
+  const sIdx = strainIndex.get(strain);
+  const recs = sIdx === undefined ? [] : (byStrain.get(sIdx) ?? []);
+  const d0 = recs.map(r => r.d0).filter((v): v is number => v != null);
+  const d28 = recs.map(r => r.d28).filter((v): v is number => v != null);
+  const rises = recs.filter(r => r.d0 != null && r.d28 != null).map(r => (r.d28 as number) - (r.d0 as number));
+  return {
+    nD0: d0.length,
+    nD28: d28.length,
+    medianD0: +median(d0).toFixed(2),
+    medianD28: +median(d28).toFixed(2),
+    medianRise: +median(rises).toFixed(2),
+  };
+}
+
 // Mean Day-28 titer per strain × vaccine arm (heatmap). Rows = all strains.
 export const haiHeatmap = STRAINS.map((strain, sIdx) => {
   const recs = byStrain.get(sIdx) ?? [];

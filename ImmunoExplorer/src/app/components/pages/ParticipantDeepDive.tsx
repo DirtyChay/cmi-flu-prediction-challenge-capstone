@@ -1,16 +1,16 @@
 import { useState, useMemo } from 'react';
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ReferenceLine,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { User, Calendar, FlaskConical } from 'lucide-react';
-import { ChartCard, DarkSelect, NoData } from '../ChartCard';
+import { ChartCard, DarkSelect, DarkTooltip, NoData } from '../ChartCard';
 import {
-  participants, getParticipantTiters, CORE_STRAINS, strainGroup,
+  participants, getParticipantTiters, getParticipantComparison, getParticipantResponse,
+  strainShortLabel,
 } from '../../data/mockData';
 
 const fmt = (v: number | null) => (v == null ? '—' : v.toFixed(2));
+const MAX_OPTIONS = 300;
 
 function ProfileCard({ pid }: { pid: string }) {
   const p = participants.find(px => px.id === pid);
@@ -25,13 +25,8 @@ function ProfileCard({ pid }: { pid: string }) {
 
   return (
     <div style={{
-      background: '#0F1117',
-      borderRadius: 10,
-      border: '1px solid rgba(255,255,255,0.07)',
-      padding: '16px',
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '12px',
+      background: '#0F1117', borderRadius: 10, border: '1px solid rgba(255,255,255,0.07)',
+      padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
     }}>
       {fields.map(f => (
         <div key={f.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -43,75 +38,18 @@ function ProfileCard({ pid }: { pid: string }) {
   );
 }
 
-// Short strain label for the radar axes (drop the group prefix to save space)
-function shortStrain(strain: string) {
-  return strain.replace(/^\S+\s/, '');
-}
-
-function TiterRadar({ pid }: { pid: string }) {
-  const titers = getParticipantTiters(pid).filter(t => CORE_STRAINS.includes(t.strain));
-
-  if (!titers.length) return <NoData />;
-
-  const radarData = titers.map(t => ({
-    strain: shortStrain(t.strain),
-    'Day 0': t.day0,
-    'Day 28': t.day28,
-    'Day 365': t.day365,
-  }));
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div style={{
-        background: '#1E2130', border: '1px solid rgba(46,134,171,0.35)',
-        borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#CBD5E1',
-      }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-        {payload.map((p: any, i: number) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-            <span style={{ color: '#94A3B8' }}>{p.name}:</span>
-            <span style={{ color: '#E2E8F0' }}>{fmt(p.value)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
+function StatCard({ value, label, tip, accent }: { value: string; label: string; tip?: string; accent?: boolean }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-        <PolarGrid stroke="rgba(255,255,255,0.1)" />
-        <PolarAngleAxis
-          dataKey="strain"
-          tick={{ fill: '#94A3B8', fontSize: 9 }}
-        />
-        <PolarRadiusAxis
-          tick={{ fill: '#475569', fontSize: 9 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Radar name="Day 0" dataKey="Day 0" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.12} strokeWidth={1.5} dot />
-        <Radar name="Day 28" dataKey="Day 28" stroke="#2E86AB" fill="#2E86AB" fillOpacity={0.2} strokeWidth={2} dot />
-        <Radar name="Day 365" dataKey="Day 365" stroke="#00D9C0" fill="#00D9C0" fillOpacity={0.12} strokeWidth={1.5} dot />
-        <Tooltip content={<CustomTooltip />} />
-      </RadarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94A3B8' }}>
-      <span style={{ width: 20, height: 2.5, background: color, display: 'inline-block', borderRadius: 2 }} />
-      {label}
+    <div title={tip} style={{
+      background: '#1E2130', borderRadius: 10,
+      border: accent ? '1px solid rgba(46,134,171,0.4)' : '1px solid rgba(255,255,255,0.07)',
+      padding: '14px 16px', cursor: tip ? 'help' : 'default',
+    }}>
+      <div style={{ color: accent ? '#2E86AB' : '#E2E8F0', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{value}</div>
+      <div style={{ color: '#64748B', fontSize: 11, marginTop: 6 }}>{label}</div>
     </div>
   );
 }
-
-// Cap the participant dropdown — a native <select> with all 3,757 IDs is sluggish.
-const MAX_OPTIONS = 300;
 
 export function ParticipantDeepDive() {
   const [pid, setPid] = useState(participants[0]?.id ?? '');
@@ -122,12 +60,13 @@ export function ParticipantDeepDive() {
   }));
 
   const titers = useMemo(() => getParticipantTiters(pid), [pid]);
-
-  const foldRise = useMemo(() =>
-    titers
-      .filter(t => t.day0 != null && t.day28 != null)
-      .map(t => ({ strain: shortStrain(t.strain), rise: +((t.day28 as number) - (t.day0 as number)).toFixed(2) })),
-    [titers]);
+  const comparison = useMemo(() => getParticipantComparison(pid).map(c => ({
+    strain: strainShortLabel(c.strain),
+    full: c.strain,
+    Participant: c.participant,
+    'Study median': c.studyMedian,
+  })), [pid]);
+  const resp = useMemo(() => getParticipantResponse(pid), [pid]);
 
   return (
     <div style={{ padding: '28px', fontFamily: 'Inter, sans-serif' }}>
@@ -135,7 +74,7 @@ export function ParticipantDeepDive() {
         <div>
           <h1 style={{ color: '#E2E8F0', fontSize: 22, fontWeight: 600, margin: 0 }}>Participant Deep Dive</h1>
           <p style={{ color: '#64748B', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
-            Individual-level immunological profile (first {MAX_OPTIONS} participants)
+            One participant's antibody response, in context of the whole study (first {MAX_OPTIONS} participants)
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -144,81 +83,86 @@ export function ParticipantDeepDive() {
         </div>
       </div>
 
+      {/* Response summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        <StatCard accent
+          value={`${resp.seroconverted}/${resp.withRise}`}
+          label="Strains that responded (≥4×)"
+          tip="Strains where this participant's antibody level rose at least 4× from Day 0 to Day 28 — the usual sign the vaccine worked — out of strains with both timepoints." />
+        <StatCard
+          value={(resp.medianRise >= 0 ? '+' : '') + resp.medianRise.toFixed(2)}
+          label="Median fold rise (log₂)"
+          tip="Typical Day 0→28 titer change for this participant. +1 = 2×, +2 = 4×." />
+        <StatCard
+          value={`${resp.aboveMedianD28}/${resp.withD28}`}
+          label="Above study median (D28)"
+          tip="Strains where this participant's Day-28 titer is higher than the median participant's." />
+        <StatCard
+          value={String(resp.strainsMeasured)}
+          label="Strains measured" />
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16, marginBottom: 20 }}>
         {/* Profile card */}
         <ChartCard title="Demographics" minHeight={180}>
           <ProfileCard pid={pid} />
         </ChartCard>
 
-        {/* Radar chart */}
-        <ChartCard title="HAI Titer Radar" subtitle="log₂ titers — core strains across timepoints" minHeight={300}>
-          <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
-            <LegendItem color="#8B5CF6" label="Day 0" />
-            <LegendItem color="#2E86AB" label="Day 28" />
-            <LegendItem color="#00D9C0" label="Day 365" />
-          </div>
-          <TiterRadar pid={pid} />
-        </ChartCard>
-      </div>
-
-      {/* Fold rise per strain */}
-      <div style={{ marginBottom: 20 }}>
-        <ChartCard title="Fold Rise by Strain" subtitle="Day 0 → Day 28 change in log₂ HAI titer" minHeight={220}>
-          {foldRise.length === 0 ? (
+        {/* Participant vs study median */}
+        <ChartCard
+          title="This Participant vs the Typical Participant"
+          subtitle="Day-28 log₂ titer — blue = this person, grey = study median (core strains)"
+          minHeight={300}
+        >
+          {comparison.length === 0 ? (
             <NoData />
           ) : (
-            <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-            <ResponsiveContainer width="100%" height={Math.max(200, foldRise.length * 22)}>
-              <BarChart data={foldRise} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="strain" type="category" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} width={150} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  content={({ active, payload }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const v = payload[0].value as number;
-                    return (
-                      <div style={{ background: '#1E2130', border: '1px solid rgba(46,134,171,0.35)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#CBD5E1' }}>
-                        <div style={{ color: '#94A3B8', marginBottom: 2 }}>{payload[0].payload.strain}</div>
-                        Δ log₂: <span style={{ color: v >= 0 ? '#06D6A0' : '#EF4444' }}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>
-                      </div>
-                    );
-                  }}
-                />
-                <ReferenceLine x={0} stroke="rgba(255,255,255,0.2)" />
-                <Bar dataKey="rise" name="Fold rise" radius={[0, 3, 3, 0]}>
-                  {foldRise.map((d, i) => (
-                    <Cell key={i} fill={d.rise >= 0 ? '#06D6A0' : '#EF4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+              <ResponsiveContainer width="100%" height={Math.max(260, comparison.length * 34)}>
+                <BarChart data={comparison} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis dataKey="strain" type="category" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} width={140} />
+                  <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Bar dataKey="Participant" fill="#2E86AB" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="Study median" fill="#64748B" radius={[0, 3, 3, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           )}
         </ChartCard>
       </div>
 
       {/* Titer table (all measured strains) */}
-      <ChartCard title="Titer Summary" subtitle="log₂ HAI values by strain — all measured strains" minHeight={200}>
-        <div style={{ overflowY: 'auto', maxHeight: 360 }}>
+      <ChartCard title="Titer Detail" subtitle="log₂ HAI values by strain, with Day 0→28 response" minHeight={200}>
+        <div style={{ overflowY: 'auto', maxHeight: 380 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                {['Strain', 'Day 0', 'Day 28', 'Day 365'].map(h => (
+                {['Strain', 'Day 0', 'Day 28', 'Day 365', 'Fold Rise', 'Responded (≥4×)'].map(h => (
                   <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#64748B', fontWeight: 500, position: 'sticky', top: 0, background: '#1E2130' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {titers.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: '14px 10px', color: '#475569' }}>No titer data for this participant.</td></tr>
+                <tr><td colSpan={6} style={{ padding: '14px 10px', color: '#475569' }}>No titer data for this participant.</td></tr>
               ) : titers.map((t, i) => (
                 <tr key={t.strain} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 ? 'rgba(255,255,255,0.018)' : 'transparent' }}>
-                  <td style={{ padding: '7px 10px', color: '#94A3B8' }} title={strainGroup(t.strain)}>{t.strain}</td>
+                  <td style={{ padding: '7px 10px', color: '#94A3B8' }}>{t.strain}</td>
                   <td style={{ padding: '7px 10px', color: '#8B5CF6', fontFamily: 'monospace' }}>{fmt(t.day0)}</td>
                   <td style={{ padding: '7px 10px', color: '#2E86AB', fontFamily: 'monospace' }}>{fmt(t.day28)}</td>
                   <td style={{ padding: '7px 10px', color: '#00D9C0', fontFamily: 'monospace' }}>{fmt(t.day365)}</td>
+                  <td style={{ padding: '7px 10px', fontFamily: 'monospace', color: t.rise == null ? '#475569' : t.rise >= 0 ? '#06D6A0' : '#EF4444' }}>
+                    {t.rise == null ? '—' : (t.rise >= 0 ? '+' : '') + t.rise.toFixed(2)}
+                  </td>
+                  <td style={{ padding: '7px 10px' }}>
+                    {t.seroconverted == null
+                      ? <span style={{ color: '#475569' }}>—</span>
+                      : t.seroconverted
+                        ? <span style={{ color: '#06D6A0' }}>✓ yes</span>
+                        : <span style={{ color: '#64748B' }}>no</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

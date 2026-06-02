@@ -418,15 +418,75 @@ export const ageBaseline = AGE_BRACKETS.map(({ label, lo, hi }) => {
 });
 
 // ── Participant deep-dive ───────────────────────────────────────────────────
+const SEROCONVERSION_RISE = 2; // +2 on log₂ = 4-fold titer rise
+
+// Population median D0/D28/fold-rise per strain (for participant-vs-cohort context).
+const strainStats = new Map(STRAINS.map(s => {
+  const sum = getStrainSummary(s);
+  return [s, { medianD0: sum.medianD0, medianD28: sum.medianD28, medianRise: sum.medianRise }];
+}));
+
 export function getParticipantTiters(pid: string) {
   const recs = byParticipant.get(pid);
   if (!recs) return [];
   return [...recs.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([sIdx, t]) => ({
-      strain: STRAINS[sIdx],
-      day0: t.d0,
-      day28: t.d28,
-      day365: t.d365,
-    }));
+    .map(([sIdx, t]) => {
+      const rise = (t.d0 != null && t.d28 != null) ? +(t.d28 - t.d0).toFixed(2) : null;
+      return {
+        strain: STRAINS[sIdx],
+        day0: t.d0,
+        day28: t.d28,
+        day365: t.d365,
+        rise,
+        seroconverted: rise != null ? rise >= SEROCONVERSION_RISE : null,
+      };
+    });
+}
+
+// Day-28 titer: this participant vs the study median, for the core strains.
+export function getParticipantComparison(pid: string) {
+  const recs = byParticipant.get(pid);
+  if (!recs) return [];
+  return CORE_STRAINS
+    .map(s => {
+      const rec = recs.get(strainIndex.get(s)!);
+      if (!rec || rec.d28 == null) return null;
+      return {
+        strain: s,
+        participant: rec.d28,
+        studyMedian: strainStats.get(s)!.medianD28,
+      };
+    })
+    .filter((x): x is { strain: string; participant: number; studyMedian: number } => x != null);
+}
+
+// Headline response metrics for one participant, with study context.
+export function getParticipantResponse(pid: string) {
+  const recs = byParticipant.get(pid);
+  if (!recs) return { strainsMeasured: 0, withRise: 0, seroconverted: 0, medianRise: 0, aboveMedianD28: 0, withD28: 0 };
+  const rises: number[] = [];
+  let seroconverted = 0;
+  let aboveMedianD28 = 0;
+  let withD28 = 0;
+  for (const [sIdx, t] of recs) {
+    if (t.d0 != null && t.d28 != null) {
+      const rise = t.d28 - t.d0;
+      rises.push(rise);
+      if (rise >= SEROCONVERSION_RISE) seroconverted++;
+    }
+    if (t.d28 != null) {
+      withD28++;
+      const med = strainStats.get(STRAINS[sIdx])!.medianD28;
+      if (t.d28 > med) aboveMedianD28++;
+    }
+  }
+  return {
+    strainsMeasured: recs.size,
+    withRise: rises.length,
+    seroconverted,
+    medianRise: +median(rises).toFixed(2),
+    aboveMedianD28,
+    withD28,
+  };
 }

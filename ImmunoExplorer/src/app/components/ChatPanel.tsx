@@ -143,12 +143,40 @@ export function ChatPanel() {
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [status, setStatus]     = useState<'checking' | 'connected' | 'offline'>('checking');
+  const [modelName, setModelName] = useState('');
   const bottomRef               = useRef<HTMLDivElement>(null);
   const inputRef                = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Ping the local server on mount to confirm it's reachable.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/v1/models`);
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        const id = d?.data?.[0]?.id ?? 'local-model';
+        if (cancelled) return;
+        cachedModel = id;
+        setModelName(id);
+        setStatus('connected');
+      } catch {
+        if (!cancelled) setStatus('offline');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const STATUS_META = {
+    checking:  { color: '#F4A261', label: 'Connecting…' },
+    connected: { color: '#06D6A0', label: modelName || 'Connected' },
+    offline:   { color: '#EF4444', label: 'Offline · 127.0.0.1:1234' },
+  }[status];
 
   async function send(text?: string) {
     const msg = (text ?? input).trim();
@@ -180,8 +208,11 @@ export function ChatPanel() {
       const data = await res.json();
       const content = data?.choices?.[0]?.message?.content ?? '(empty response)';
       setMessages([...nextHistory, { role: 'assistant', content }]);
+      setStatus('connected');
+      if (model) setModelName(model);
     } catch (e: any) {
       const failedToFetch = e?.message === 'Failed to fetch' || e?.name === 'TypeError';
+      if (failedToFetch) setStatus('offline');
       setError(failedToFetch
         ? 'Could not reach the local model server at 127.0.0.1:1234. Make sure LM Studio’s server is running with CORS enabled.'
         : (e.message ?? 'Could not reach the chat server.'));
@@ -230,6 +261,30 @@ export function ChatPanel() {
           <div style={{ color: '#64748B', fontSize: 11, marginTop: 1 }}>
             Ask questions about train_combined &amp; challenge_combined
           </div>
+        </div>
+
+        {/* Connection status */}
+        <div title={`Local model server at ${API_BASE}`} style={{
+          marginLeft: 'auto',
+          display: 'flex', alignItems: 'center', gap: 7,
+          background: '#1E2130',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 999,
+          padding: '5px 12px',
+          maxWidth: 240,
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            background: STATUS_META.color,
+            boxShadow: `0 0 6px ${STATUS_META.color}`,
+            animation: status === 'checking' ? 'pulse 1.2s ease-in-out infinite' : undefined,
+          }} />
+          <span style={{
+            color: '#94A3B8', fontSize: 11, whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {STATUS_META.label}
+          </span>
         </div>
       </div>
 
@@ -442,7 +497,7 @@ export function ChatPanel() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
     </div>
   );
 }

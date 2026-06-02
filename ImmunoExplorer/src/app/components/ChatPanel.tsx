@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
 import {
   participants, cohortCounts, sexData, ageHistogram, STRAINS, strainD28Coverage,
+  strainBoost, strainTestedCount, sexResponse, ageBaseline,
 } from '../data/mockData';
 
 // Local LLM server (LM Studio / any OpenAI-compatible endpoint)
@@ -14,6 +15,14 @@ const mostMissingD28 = strainD28Coverage.slice(0, 10)
   .map(s => `${s.strain} (${s.missing} missing)`).join('; ');
 const bestCoveredD28 = strainD28Coverage.slice(-8).reverse()
   .map(s => `${s.strain} (${s.measured} measured)`).join('; ');
+const biggestBoost = strainBoost.slice(0, 6)
+  .map(s => `${s.strain} +${s.medianRise}`).join('; ');
+const fewestTested = strainTestedCount.slice(0, 6)
+  .map(s => `${s.strain} (${s.n} tested)`).join('; ');
+const responseSex = sexResponse
+  .map(s => `${s.sex}: mean log₂ rise +${s.meanRise}`).join('; ');
+const ageBaselineStr = ageBaseline
+  .map(b => `${b.age}: ${b.medianD0}`).join(', ');
 
 // Ground the model with the real dataset facts so it can answer the suggestions.
 const SYSTEM_PROMPT = `You are a data assistant for the ImmunoExplorer flu-vaccine study dashboard.
@@ -27,6 +36,10 @@ Answer questions about the train_combined dataset using these known facts:
 - HAI titers are log2-transformed, so a +1 change means a doubling of titer.
 - HAI strains with the MOST missing Day-28 values (out of ${participants.length}): ${mostMissingD28}
 - HAI strains measured for the MOST participants at Day 28: ${bestCoveredD28}
+- Strains tested for the FEWEST participants: ${fewestTested}
+- Biggest antibody boost (highest median Day0→28 fold rise, log₂): ${biggestBoost}
+- Vaccine response by sex (higher mean rise = more responsive): ${responseSex}
+- Baseline (Day-0) titer by age group (median log₂): ${ageBaselineStr}
 Be concise. Use only the facts above. This dataset has no transcriptomics or challenge-cohort information, so say so if asked. If a question needs data not listed above, say what would be required.`;
 
 // LM Studio needs the loaded model's id; fetch it once (fall back to a placeholder).

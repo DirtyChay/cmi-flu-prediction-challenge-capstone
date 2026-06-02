@@ -490,3 +490,8 @@ export function getParticipantResponse(pid: string) {
     withD28,
   };
 }
+
+// Q3: participants tested per strain (any timepoint), fewest first.
+export const strainTestedCount = STRAINS
+  .map((s, i) => ({ strain: s, n: (byStrain.get(i) ?? []).length }))
+  .sort((a, b) => a.n - b.n);

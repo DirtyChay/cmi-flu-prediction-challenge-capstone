@@ -233,6 +233,13 @@ export const foldRiseByArm = GROUP_ORDER.map(g => {
   return total ? row : null;
 }).filter((r): r is Record<string, number | string> => r != null);
 
+// Per-strain Day-28 coverage (measured vs missing), sorted by most-missing first.
+export const strainD28Coverage = STRAINS.map((s, sIdx) => {
+  const recs = byStrain.get(sIdx) ?? [];
+  const measured = recs.filter(r => r.d28 != null).length;
+  return { strain: s, measured, missing: participants.length - measured };
+}).sort((a, b) => b.missing - a.missing);
+
 // Per-strain summary used by the HAI Explorer header strip.
 export function getStrainSummary(strain: string) {
   const sIdx = strainIndex.get(strain);

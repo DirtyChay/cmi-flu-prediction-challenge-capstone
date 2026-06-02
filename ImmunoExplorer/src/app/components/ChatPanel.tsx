@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
 import {
-  participants, cohortCounts, sexData, ageHistogram, STRAINS,
+  participants, cohortCounts, sexData, ageHistogram, STRAINS, strainD28Coverage,
 } from '../data/mockData';
 
 // Local LLM server (LM Studio / any OpenAI-compatible endpoint)
@@ -9,6 +9,11 @@ const API_BASE = 'http://127.0.0.1:1234';
 
 type Role = 'user' | 'assistant';
 interface Message { role: Role; content: string; }
+
+const mostMissingD28 = strainD28Coverage.slice(0, 10)
+  .map(s => `${s.strain} (${s.missing} missing)`).join('; ');
+const bestCoveredD28 = strainD28Coverage.slice(-8).reverse()
+  .map(s => `${s.strain} (${s.measured} measured)`).join('; ');
 
 // Ground the model with the real dataset facts so it can answer the suggestions.
 const SYSTEM_PROMPT = `You are a data assistant for the ImmunoExplorer flu-vaccine study dashboard.
@@ -20,7 +25,9 @@ Answer questions about the train_combined dataset using these known facts:
 - HAI strains assayed: ${STRAINS.length}, grouped into H1N1, H3N2, B/Victoria, B/Yamagata, and ancestral B
 - Timepoints: Day 0 (baseline), Day 28 (post-vaccination), Day 365 (one year)
 - HAI titers are log2-transformed, so a +1 change means a doubling of titer.
-Be concise. If a question needs data not listed above, say what would be required to answer it.`;
+- HAI strains with the MOST missing Day-28 values (out of ${participants.length}): ${mostMissingD28}
+- HAI strains measured for the MOST participants at Day 28: ${bestCoveredD28}
+Be concise. Use only the facts above. This dataset has no transcriptomics or challenge-cohort information, so say so if asked. If a question needs data not listed above, say what would be required.`;
 
 // LM Studio needs the loaded model's id; fetch it once (fall back to a placeholder).
 let cachedModel: string | null = null;
@@ -40,7 +47,7 @@ const SUGGESTIONS = [
   'How many participants are in each vaccine arm?',
   'What is the distribution of ages in the training set?',
   'Which HAI strains have the most missing values at D28?',
-  'How many challenge participants have transcriptomics data?',
+  'Which HAI strains were measured for the most participants?',
 ];
 
 // Very basic markdown-to-JSX: bold, inline code, code blocks, line breaks
@@ -259,7 +266,7 @@ export function ChatPanel() {
         <div>
           <div style={{ color: '#E2E8F0', fontSize: 15, fontWeight: 600 }}>Data Chat</div>
           <div style={{ color: '#64748B', fontSize: 11, marginTop: 1 }}>
-            Ask questions about train_combined &amp; challenge_combined
+            Ask questions about the train_combined dataset
           </div>
         </div>
 

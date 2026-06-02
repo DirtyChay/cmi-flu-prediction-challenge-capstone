@@ -8,6 +8,13 @@ interface HeatmapGridProps {
   colorMax?: string;
   diverging?: boolean;
   formatVal?: (v: number) => string;
+  // Optional full-text labels shown on hover (default to the short labels).
+  rowTitles?: string[];
+  colTitles?: string[];
+  rotateColLabels?: boolean;
+  cellMinWidth?: number;
+  cellHeight?: number;
+  rowLabelWidth?: number;
 }
 
 function lerp(a: number, b: number, t: number) {
@@ -31,12 +38,20 @@ export function HeatmapGrid({
   colorMin = '#0F1117', colorMax = '#2E86AB',
   diverging = false,
   formatVal = (v: number) => v.toFixed(2),
+  rowTitles, colTitles,
+  rotateColLabels = false,
+  cellMinWidth = 58,
+  cellHeight = 36,
+  rowLabelWidth = 96,
 }: HeatmapGridProps) {
   const [hovered, setHovered] = useState<{ r: number; c: number } | null>(null);
 
   const flat = values.flat();
   const minVal = Math.min(...flat);
   const maxVal = Math.max(...flat);
+
+  const rowTitleAt = (i: number) => rowTitles?.[i] ?? rowLabels[i];
+  const colTitleAt = (i: number) => colTitles?.[i] ?? colLabels[i];
 
   const cellColor = (v: number): string => {
     if (diverging) {
@@ -58,24 +73,44 @@ export function HeatmapGrid({
     <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'inline-block', minWidth: '100%' }}>
         {/* Header row */}
-        <div style={{ display: 'flex', paddingLeft: 100 }}>
-          {colLabels.map(c => (
-            <div key={c} style={{
-              flex: 1, minWidth: 58, textAlign: 'center',
-              color: '#94A3B8', fontSize: 10, padding: '4px 2px',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        <div style={{ display: 'flex', paddingLeft: rowLabelWidth, alignItems: 'flex-end', height: rotateColLabels ? 100 : undefined }}>
+          {colLabels.map((c, ci) => (
+            <div key={ci} title={colTitleAt(ci)} style={{
+              flex: 1, minWidth: cellMinWidth,
+              position: rotateColLabels ? 'relative' : undefined,
+              padding: rotateColLabels ? 0 : '4px 2px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              height: rotateColLabels ? 100 : undefined,
             }}>
-              {c}
+              <span style={rotateColLabels ? {
+                position: 'absolute',
+                bottom: 6,
+                left: '50%',
+                transform: 'rotate(-45deg)',
+                transformOrigin: 'left bottom',
+                whiteSpace: 'nowrap',
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#CBD5E1',
+              } : {
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', width: '100%',
+                fontSize: 10, color: '#94A3B8',
+              }}>
+                {c}
+              </span>
             </div>
           ))}
         </div>
 
         {/* Data rows */}
         {rowLabels.map((row, ri) => (
-          <div key={row} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
-            <div style={{
-              width: 96, fontSize: 11, color: '#94A3B8', textAlign: 'right',
+          <div key={ri} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
+            <div title={rowTitleAt(ri)} style={{
+              width: rowLabelWidth, fontSize: 11, color: '#94A3B8', textAlign: 'right',
               paddingRight: 10, flexShrink: 0, whiteSpace: 'nowrap',
+              overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
               {row}
             </div>
@@ -84,9 +119,9 @@ export function HeatmapGrid({
               const isHov = hovered?.r === ri && hovered?.c === ci;
               return (
                 <div
-                  key={col}
+                  key={ci}
                   style={{
-                    flex: 1, minWidth: 58, height: 36,
+                    flex: 1, minWidth: cellMinWidth, height: cellHeight,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: cellColor(v),
                     borderRadius: 4,
@@ -100,7 +135,7 @@ export function HeatmapGrid({
                   }}
                   onMouseEnter={() => setHovered({ r: ri, c: ci })}
                   onMouseLeave={() => setHovered(null)}
-                  title={`${row} × ${col}: ${formatVal(v)}`}
+                  title={`${rowTitleAt(ri)} × ${colTitleAt(ci)}: ${formatVal(v)}`}
                 >
                   {formatVal(v)}
                 </div>

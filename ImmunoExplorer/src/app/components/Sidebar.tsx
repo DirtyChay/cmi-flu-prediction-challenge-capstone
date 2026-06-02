@@ -1,6 +1,6 @@
-import { Database, Activity, GitBranch, BarChart2, User, MessageSquare } from 'lucide-react';
+import { Database, Activity, GitBranch, User, MessageSquare } from 'lucide-react';
 
-export type PageId = 'overview' | 'hai' | 'correlations' | 'models' | 'participant' | 'chat';
+export type PageId = 'overview' | 'hai' | 'correlations' | 'participant' | 'chat';
 
 interface NavItem { id: PageId; label: string; icon: React.ComponentType<any>; dividerBefore?: boolean; }
 
@@ -8,7 +8,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'overview',    label: 'Dataset Overview',      icon: Database },
   { id: 'hai',         label: 'HAI Titer Explorer',    icon: Activity },
   { id: 'correlations',label: 'Feature Correlations',  icon: GitBranch },
-  { id: 'models',      label: 'Model Performance',     icon: BarChart2 },
   { id: 'participant', label: 'Participant Deep Dive',  icon: User },
   { id: 'chat',        label: 'Data Chat',             icon: MessageSquare, dividerBefore: true },
 ];

@@ -1,10 +1,40 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
+import {
+  participants, cohortCounts, sexData, ageHistogram, STRAINS,
+} from '../data/mockData';
 
-const API = 'http://localhost:8000';
+// Local LLM server (LM Studio / any OpenAI-compatible endpoint)
+const API_BASE = 'http://127.0.0.1:1234';
 
 type Role = 'user' | 'assistant';
 interface Message { role: Role; content: string; }
+
+// Ground the model with the real dataset facts so it can answer the suggestions.
+const SYSTEM_PROMPT = `You are a data assistant for the ImmunoExplorer flu-vaccine study dashboard.
+Answer questions about the train_combined dataset using these known facts:
+- Total participants: ${participants.length}
+- Vaccine arms (cohorts): ${cohortCounts.map(c => `${c.cohort} = ${c.count}`).join(', ')}
+- Sex: ${sexData.map(s => `${s.name} ${s.value}`).join(', ')}
+- Age distribution (bin: count): ${ageHistogram.map(b => `${b.bin}: ${b.count}`).join(', ')}
+- HAI strains assayed: ${STRAINS.length}, grouped into H1N1, H3N2, B/Victoria, B/Yamagata, and ancestral B
+- Timepoints: Day 0 (baseline), Day 28 (post-vaccination), Day 365 (one year)
+- HAI titers are log2-transformed, so a +1 change means a doubling of titer.
+Be concise. If a question needs data not listed above, say what would be required to answer it.`;
+
+// LM Studio needs the loaded model's id; fetch it once (fall back to a placeholder).
+let cachedModel: string | null = null;
+async function getModelId(): Promise<string> {
+  if (cachedModel) return cachedModel;
+  try {
+    const r = await fetch(`${API_BASE}/v1/models`);
+    const d = await r.json();
+    cachedModel = d?.data?.[0]?.id ?? 'local-model';
+  } catch {
+    cachedModel = 'local-model';
+  }
+  return cachedModel;
+}
 
 const SUGGESTIONS = [
   'How many participants are in each vaccine arm?',
@@ -132,19 +162,29 @@ export function ChatPanel() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API}/chat`, {
+      const model = await getModelId();
+      const res = await fetch(`${API_BASE}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, history: messages }),
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...nextHistory],
+          temperature: 0.3,
+          stream: false,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? `Server error ${res.status}`);
+        throw new Error(body?.error?.message ?? `Server error ${res.status}`);
       }
       const data = await res.json();
-      setMessages([...nextHistory, { role: 'assistant', content: data.response }]);
+      const content = data?.choices?.[0]?.message?.content ?? '(empty response)';
+      setMessages([...nextHistory, { role: 'assistant', content }]);
     } catch (e: any) {
-      setError(e.message ?? 'Could not reach the chat server.');
+      const failedToFetch = e?.message === 'Failed to fetch' || e?.name === 'TypeError';
+      setError(failedToFetch
+        ? 'Could not reach the local model server at 127.0.0.1:1234. Make sure LM Studio’s server is running with CORS enabled.'
+        : (e.message ?? 'Could not reach the chat server.'));
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -398,7 +438,7 @@ export function ChatPanel() {
           </button>
         </div>
         <div style={{ maxWidth: 760, margin: '6px auto 0', textAlign: 'center', color: '#334155', fontSize: 10 }}>
-          Powered by Claude · Data stays local · Server must be running on port 8000
+          Powered by your local model · Data stays local · LM Studio server must be running on 127.0.0.1:1234
         </div>
       </div>
 

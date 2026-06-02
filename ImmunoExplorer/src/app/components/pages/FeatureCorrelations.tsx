@@ -38,8 +38,8 @@ function ScatterExplorerTooltip({ active, payload }: any) {
 }
 
 export function FeatureCorrelations() {
-  const [xField, setXField] = useState<ScatterField>(SCATTER_FIELDS[1] ?? 'Age');
-  const [yField, setYField] = useState<ScatterField>(SCATTER_FIELDS[3] ?? 'Age');
+  const [xField, setXField] = useState<ScatterField>('Age');
+  const [yField, setYField] = useState<ScatterField>(SCATTER_FIELDS[2] ?? SCATTER_FIELDS[1] ?? 'Age');
   const [colorBy, setColorBy] = useState<'arm' | 'sex'>('arm');
   const [corrGroup, setCorrGroup] = useState<string>(CORR_GROUPS[0]?.value ?? '');
 
@@ -113,8 +113,8 @@ export function FeatureCorrelations() {
 
         {/* Scatter explorer */}
         <ChartCard
-          title="Scatter Explorer"
-          subtitle="Interactive feature comparison"
+          title="Compare Any Two Measurements"
+          subtitle="Each dot = one participant. Pick an X and Y to see if they move together."
           minHeight={260}
           actions={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -162,8 +162,8 @@ export function FeatureCorrelations() {
 
         {/* Vaccine response: mean fold rise by arm */}
         <ChartCard
-          title="Vaccine Response — Mean Fold Rise by Arm"
-          subtitle="Day 0 → Day 28 change in log₂ HAI titer, per antigenic group"
+          title="Did Antibodies Rise After Vaccination?"
+          subtitle="Average titer increase (Day 0 → Day 28) by flu family and vaccine arm. Taller bar = bigger jump; +1 ≈ doubling."
           minHeight={240}
         >
         <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -179,7 +179,7 @@ export function FeatureCorrelations() {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="group" tick={axisStyle} axisLine={false} tickLine={false} />
             <YAxis tick={axisStyle} axisLine={false} tickLine={false}
-              label={{ value: 'Δ log₂ titer', angle: -90, position: 'insideLeft', style: { fill: '#64748B', fontSize: 10 } }} />
+              label={{ value: 'avg titer rise (log₂)', angle: -90, position: 'insideLeft', style: { fill: '#64748B', fontSize: 10 } }} />
             <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
             {VACCINE_ARMS.map(arm => (
               <Bar key={arm} dataKey={arm} name={arm} fill={ARM_COLORS[arm]} radius={[3, 3, 0, 0]} />

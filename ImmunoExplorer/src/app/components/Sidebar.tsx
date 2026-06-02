@@ -1,8 +1,8 @@
-import { Database, Activity, GitBranch, BarChart2, User } from 'lucide-react';
+import { Database, Activity, GitBranch, BarChart2, User, MessageSquare } from 'lucide-react';
 
-export type PageId = 'overview' | 'hai' | 'correlations' | 'models' | 'participant';
+export type PageId = 'overview' | 'hai' | 'correlations' | 'models' | 'participant' | 'chat';
 
-interface NavItem { id: PageId; label: string; icon: React.ComponentType<any>; }
+interface NavItem { id: PageId; label: string; icon: React.ComponentType<any>; dividerBefore?: boolean; }
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview',    label: 'Dataset Overview',      icon: Database },
@@ -10,6 +10,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'correlations',label: 'Feature Correlations',  icon: GitBranch },
   { id: 'models',      label: 'Model Performance',     icon: BarChart2 },
   { id: 'participant', label: 'Participant Deep Dive',  icon: User },
+  { id: 'chat',        label: 'Data Chat',             icon: MessageSquare, dividerBefore: true },
 ];
 
 interface SidebarProps {
@@ -60,6 +61,10 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
           const isActive = item.id === active;
           const Icon = item.icon;
           return (
+            <div key={item.id}>
+            {item.dividerBefore && (
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '8px 4px' }} />
+            )}
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
@@ -96,6 +101,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
               <Icon size={16} style={{ color: isActive ? '#2E86AB' : undefined, flexShrink: 0 }} />
               {item.label}
             </button>
+            </div>
           );
         })}
       </nav>

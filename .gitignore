@@ -13,6 +13,7 @@ cleaned_data/*
 !cleaned_data/participants_cleaned.csv
 !cleaned_data/transcriptomics_cleaned.csv
 !cleaned_data/train_combined.csv
+!cleaned_data/train_combined_challenge_filtered.csv
 
 .env
 .DS_Store

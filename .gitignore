@@ -20,3 +20,7 @@ cleaned_data/*
 
 #merged_data/*
 !merged_data/.gitkeeppath/to/giant/file
+
+# demo
+ImmunoExplorer/node_modules/
+ImmunoExplorer/package-lock.json

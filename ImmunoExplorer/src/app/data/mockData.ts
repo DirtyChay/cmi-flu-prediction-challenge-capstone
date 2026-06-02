@@ -230,13 +230,35 @@ export function getStrainSummary(strain: string) {
   const d0 = recs.map(r => r.d0).filter((v): v is number => v != null);
   const d28 = recs.map(r => r.d28).filter((v): v is number => v != null);
   const rises = recs.filter(r => r.d0 != null && r.d28 != null).map(r => (r.d28 as number) - (r.d0 as number));
+  // Each rec is one participant that has at least one timepoint for this strain.
+  const nParticipants = recs.length;
   return {
     nD0: d0.length,
     nD28: d28.length,
+    nParticipants,
+    total: participants.length,
+    coveragePct: participants.length ? +(100 * nParticipants / participants.length).toFixed(1) : 0,
     medianD0: +median(d0).toFixed(2),
     medianD28: +median(d28).toFixed(2),
     medianRise: +median(rises).toFixed(2),
   };
+}
+
+// Mean titer per vaccine arm at each timepoint, for a single strain.
+// Shaped for a grouped bar chart: [{ arm, 'Day 0', 'Day 28', 'Day 365' }, ...]
+export function getArmTimepointMeans(strain: string) {
+  const sIdx = strainIndex.get(strain);
+  const recs = sIdx === undefined ? [] : (byStrain.get(sIdx) ?? []);
+  const mean = (vals: number[]) => vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : 0;
+  return VACCINE_ARMS.map(arm => {
+    const armRecs = recs.filter(r => participants[r.pIdx].arm === arm);
+    return {
+      arm,
+      'Day 0': mean(armRecs.map(r => r.d0).filter((v): v is number => v != null)),
+      'Day 28': mean(armRecs.map(r => r.d28).filter((v): v is number => v != null)),
+      'Day 365': mean(armRecs.map(r => r.d365).filter((v): v is number => v != null)),
+    };
+  });
 }
 
 // Mean Day-28 titer per strain × vaccine arm (heatmap). Rows = all strains.

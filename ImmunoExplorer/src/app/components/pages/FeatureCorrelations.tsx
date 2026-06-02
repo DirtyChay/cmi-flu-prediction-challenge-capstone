@@ -1,28 +1,25 @@
 import { useState, useMemo } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ScatterChart, Scatter, Cell, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ScatterChart, Scatter,
 } from 'recharts';
-import { ChartCard, DarkSelect, DarkTooltip } from '../ChartCard';
+import { ChartCard, DarkSelect } from '../ChartCard';
 import { HeatmapGrid } from '../HeatmapGrid';
 import {
-  STRAINS, correlationMatrix, immuneFeatures,
-  getScatterData, SCATTER_FIELDS, ScatterField, CHART_COLORS,
+  CORR_STRAINS, correlationMatrix,
+  getScatterData, SCATTER_FIELDS, ScatterField, CHART_COLORS, ARM_COLORS,
 } from '../../data/mockData';
 
 const axisStyle = { fill: '#64748B', fontSize: 11 };
 
 const COLOR_BY_OPTIONS = [
-  { value: 'arm',    label: 'Vaccine Arm' },
-  { value: 'sex',    label: 'Sex' },
-  { value: 'cohort', label: 'Cohort' },
+  { value: 'arm', label: 'Vaccine Arm' },
+  { value: 'sex', label: 'Sex' },
 ] as const;
 
-const GROUP_COLORS: Record<string, string> = {
-  'TIV-HD': '#2E86AB', 'TIV-SD': '#00D9C0', LAIV: '#F4A261', Placebo: '#8B5CF6',
-  Male: '#2E86AB', Female: '#F4A261',
-  'High-Dose TIV': '#2E86AB', 'Standard TIV': '#00D9C0',
-};
+function groupColor(g: string): string {
+  return ARM_COLORS[g] ?? (g === 'Male' ? '#2E86AB' : g === 'Female' ? '#F4A261' : '#8B5CF6');
+}
 
 function ScatterExplorerTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
@@ -32,7 +29,7 @@ function ScatterExplorerTooltip({ active, payload }: any) {
       background: '#1E2130', border: '1px solid rgba(46,134,171,0.35)',
       borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#CBD5E1',
     }}>
-      <div style={{ color: GROUP_COLORS[d?.group] || '#2E86AB', fontWeight: 600, marginBottom: 4 }}>{d?.group}</div>
+      <div style={{ color: groupColor(d?.group), fontWeight: 600, marginBottom: 4 }}>{d?.group}</div>
       <div>X: <span style={{ color: '#E2E8F0' }}>{d?.x?.toFixed(3)}</span></div>
       <div>Y: <span style={{ color: '#E2E8F0' }}>{d?.y?.toFixed(3)}</span></div>
     </div>
@@ -40,19 +37,18 @@ function ScatterExplorerTooltip({ active, payload }: any) {
 }
 
 export function FeatureCorrelations() {
-  const [xField, setXField] = useState<ScatterField>('H1N1 D0');
-  const [yField, setYField] = useState<ScatterField>('H3N2 D0');
-  const [colorBy, setColorBy] = useState<'arm' | 'sex' | 'cohort'>('arm');
+  const [xField, setXField] = useState<ScatterField>(SCATTER_FIELDS[1] ?? 'Age');
+  const [yField, setYField] = useState<ScatterField>(SCATTER_FIELDS[3] ?? 'Age');
+  const [colorBy, setColorBy] = useState<'arm' | 'sex'>('arm');
 
-  const corrValues = STRAINS.map((_, ri) => correlationMatrix[ri].map(c => c.r));
-  const strainLabels = Array.from(STRAINS);
+  const corrValues = CORR_STRAINS.map((_, ri) => correlationMatrix[ri].map(c => c.r));
 
   const scatterData = useMemo(() => getScatterData(xField, yField, colorBy), [xField, yField, colorBy]);
 
   const groups = [...new Set(scatterData.map(d => d.group))];
-  const grouped = groups.map(g => ({
+  const grouped = groups.map((g, i) => ({
     g,
-    color: GROUP_COLORS[g] || CHART_COLORS[groups.indexOf(g) % CHART_COLORS.length],
+    color: groupColor(g) || CHART_COLORS[i % CHART_COLORS.length],
     data: scatterData.filter(d => d.group === g),
   }));
 
@@ -61,7 +57,7 @@ export function FeatureCorrelations() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ color: '#E2E8F0', fontSize: 22, fontWeight: 600, margin: 0 }}>Feature Correlations</h1>
         <p style={{ color: '#64748B', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
-          Baseline immunological feature relationships across participants
+          Baseline titer relationships across participants — top {CORR_STRAINS.length} most-measured strains
         </p>
       </div>
 
@@ -73,13 +69,15 @@ export function FeatureCorrelations() {
           subtitle="Pearson r — Day-0 log₂ titers between strains"
           minHeight={260}
         >
-          <HeatmapGrid
-            rowLabels={strainLabels}
-            colLabels={strainLabels}
-            values={corrValues}
-            diverging={true}
-            formatVal={v => v.toFixed(2)}
-          />
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            <HeatmapGrid
+              rowLabels={CORR_STRAINS}
+              colLabels={CORR_STRAINS}
+              values={corrValues}
+              diverging={true}
+              formatVal={v => v.toFixed(2)}
+            />
+          </div>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 10, color: '#64748B' }}>−1</span>
             <div style={{
@@ -139,35 +137,6 @@ export function FeatureCorrelations() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
-
-      {/* Grouped bar: immune cell features Day0 vs Day7 */}
-      <ChartCard
-        title="Top Immune Cell Features"
-        subtitle="Relative abundance — Day 0 vs Day 7 post-vaccination"
-        minHeight={240}
-      >
-        <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
-          {[
-            { label: 'Day 0', color: '#2E86AB' },
-            { label: 'Day 7', color: '#00D9C0' },
-          ].map(({ label, color }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94A3B8' }}>
-              <span style={{ width: 12, height: 3, background: color, display: 'inline-block', borderRadius: 2 }} />
-              {label}
-            </div>
-          ))}
-        </div>
-        <ResponsiveContainer width="100%" height={230}>
-          <BarChart data={immuneFeatures} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis dataKey="feature" tick={axisStyle} axisLine={false} tickLine={false} />
-            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
-            <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-            <Bar dataKey="day0" name="Day 0" fill="#2E86AB" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="day7" name="Day 7" fill="#00D9C0" radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
     </div>
   );
 }

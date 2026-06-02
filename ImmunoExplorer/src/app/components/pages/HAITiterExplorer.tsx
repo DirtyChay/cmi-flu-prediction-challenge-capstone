@@ -7,7 +7,7 @@ import { ChartCard, DarkSelect, NoData } from '../ChartCard';
 import { BoxPlotChart } from '../BoxPlotChart';
 import { HeatmapGrid } from '../HeatmapGrid';
 import {
-  STRAINS, getBoxPlotData, getHAIScatterData, haiHeatmap, ARM_COLORS, VACCINE_ARMS,
+  STRAINS, getBoxPlotData, getHAIScatterData, haiHeatmap, ARM_COLORS, VACCINE_ARMS, strainColor,
 } from '../../data/mockData';
 
 const axisStyle = { fill: '#64748B', fontSize: 11 };
@@ -28,16 +28,12 @@ function ScatterTooltip({ active, payload }: any) {
   );
 }
 
-const STRAIN_COLORS: Record<string, string> = {
-  H1N1: '#2E86AB', H3N2: '#00D9C0', 'B/Victoria': '#F4A261', 'B/Yamagata': '#8B5CF6',
-};
-
 export function HAITiterExplorer() {
   const [strain, setStrain] = useState<string>(STRAINS[0]);
 
   const boxData = useMemo(() => getBoxPlotData(strain), [strain]);
   const scatterData = useMemo(() => getHAIScatterData(strain), [strain]);
-  const strainColor = STRAIN_COLORS[strain] ?? '#2E86AB';
+  const color = strainColor(strain);
 
   // Heatmap: strains × vaccine arms
   const heatValues = haiHeatmap.map(row => row.values.map(v => v.mean));
@@ -78,7 +74,7 @@ export function HAITiterExplorer() {
           minHeight={280}
         >
           {boxData.length > 0 ? (
-            <BoxPlotChart data={boxData} color={strainColor} height={280} />
+            <BoxPlotChart data={boxData} color={color} height={280} />
           ) : (
             <NoData />
           )}
@@ -128,17 +124,19 @@ export function HAITiterExplorer() {
         {/* Heatmap: strains × vaccine arms mean D28 */}
         <ChartCard
           title="Mean Day-28 Titer Heatmap"
-          subtitle="log₂ HAI titer — strain × vaccine arm"
+          subtitle="log₂ HAI titer — strain × vaccine arm (all strains)"
           minHeight={300}
         >
-          <HeatmapGrid
-            rowLabels={heatRowLabels}
-            colLabels={heatColLabels}
-            values={heatValues}
-            colorMin="#0F1117"
-            colorMax="#2E86AB"
-            formatVal={v => v.toFixed(1)}
-          />
+          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+            <HeatmapGrid
+              rowLabels={heatRowLabels}
+              colLabels={heatColLabels}
+              values={heatValues}
+              colorMin="#0F1117"
+              colorMax="#2E86AB"
+              formatVal={v => v.toFixed(1)}
+            />
+          </div>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 10, color: '#64748B' }}>Low</span>
             <div style={{

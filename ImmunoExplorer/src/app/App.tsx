@@ -3,7 +3,6 @@ import { Sidebar, PageId } from './components/Sidebar';
 import { DatasetOverview } from './components/pages/DatasetOverview';
 import { HAITiterExplorer } from './components/pages/HAITiterExplorer';
 import { FeatureCorrelations } from './components/pages/FeatureCorrelations';
-import { ModelPerformance } from './components/pages/ModelPerformance';
 import { ParticipantDeepDive } from './components/pages/ParticipantDeepDive';
 
 export default function App() {
@@ -28,7 +27,6 @@ export default function App() {
         {page === 'overview'     && <DatasetOverview />}
         {page === 'hai'          && <HAITiterExplorer />}
         {page === 'correlations' && <FeatureCorrelations />}
-        {page === 'models'       && <ModelPerformance />}
         {page === 'participant'  && <ParticipantDeepDive />}
       </main>
     </div>

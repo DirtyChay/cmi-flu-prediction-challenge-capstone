@@ -6,20 +6,20 @@ import {
 import { User, Calendar, FlaskConical } from 'lucide-react';
 import { ChartCard, DarkSelect, NoData } from '../ChartCard';
 import {
-  participants, getParticipantTiters, getParticipantPredictions, TASKS,
+  participants, getParticipantTiters, CORE_STRAINS, strainGroup,
 } from '../../data/mockData';
+
+const fmt = (v: number | null) => (v == null ? '—' : v.toFixed(2));
 
 function ProfileCard({ pid }: { pid: string }) {
   const p = participants.find(px => px.id === pid);
   if (!p) return <NoData />;
 
   const fields = [
-    { icon: User,       label: 'Participant ID', value: p.id },
-    { icon: Calendar,   label: 'Age',            value: `${p.age} yrs` },
-    { icon: User,       label: 'Sex',            value: p.sex },
-    { icon: FlaskConical, label: 'Cohort',        value: p.cohort },
-    { icon: FlaskConical, label: 'Vaccine Arm',   value: p.vaccineArm },
-    { icon: User,       label: 'Race',           value: p.race },
+    { icon: User, label: 'Participant ID', value: p.id },
+    { icon: Calendar, label: 'Age', value: `${p.age} yrs` },
+    { icon: User, label: 'Sex', value: p.sex },
+    { icon: FlaskConical, label: 'Vaccine Arm', value: p.arm },
   ];
 
   return (
@@ -42,11 +42,18 @@ function ProfileCard({ pid }: { pid: string }) {
   );
 }
 
+// Short strain label for the radar axes (drop the group prefix to save space)
+function shortStrain(strain: string) {
+  return strain.replace(/^\S+\s/, '');
+}
+
 function TiterRadar({ pid }: { pid: string }) {
-  const titers = getParticipantTiters(pid);
+  const titers = getParticipantTiters(pid).filter(t => CORE_STRAINS.includes(t.strain));
+
+  if (!titers.length) return <NoData />;
 
   const radarData = titers.map(t => ({
-    strain: t.strain,
+    strain: shortStrain(t.strain),
     'Day 0': t.day0,
     'Day 28': t.day28,
     'Day 365': t.day365,
@@ -64,7 +71,7 @@ function TiterRadar({ pid }: { pid: string }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
             <span style={{ color: '#94A3B8' }}>{p.name}:</span>
-            <span style={{ color: '#E2E8F0' }}>{(p.value as number)?.toFixed(2)}</span>
+            <span style={{ color: '#E2E8F0' }}>{fmt(p.value)}</span>
           </div>
         ))}
       </div>
@@ -72,20 +79,20 @@ function TiterRadar({ pid }: { pid: string }) {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={300}>
       <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
         <PolarGrid stroke="rgba(255,255,255,0.1)" />
         <PolarAngleAxis
           dataKey="strain"
-          tick={{ fill: '#94A3B8', fontSize: 11 }}
+          tick={{ fill: '#94A3B8', fontSize: 9 }}
         />
         <PolarRadiusAxis
           tick={{ fill: '#475569', fontSize: 9 }}
           axisLine={false}
           tickLine={false}
         />
-        <Radar name="Day 0"   dataKey="Day 0"   stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.12} strokeWidth={1.5} dot />
-        <Radar name="Day 28"  dataKey="Day 28"  stroke="#2E86AB" fill="#2E86AB" fillOpacity={0.2}  strokeWidth={2} dot />
+        <Radar name="Day 0" dataKey="Day 0" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.12} strokeWidth={1.5} dot />
+        <Radar name="Day 28" dataKey="Day 28" stroke="#2E86AB" fill="#2E86AB" fillOpacity={0.2} strokeWidth={2} dot />
         <Radar name="Day 365" dataKey="Day 365" stroke="#00D9C0" fill="#00D9C0" fillOpacity={0.12} strokeWidth={1.5} dot />
         <Tooltip content={<CustomTooltip />} />
       </RadarChart>
@@ -102,15 +109,17 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
+// Cap the participant dropdown — a native <select> with all 3,757 IDs is sluggish.
+const MAX_OPTIONS = 300;
+
 export function ParticipantDeepDive() {
   const [pid, setPid] = useState(participants[0]?.id ?? '');
 
-  const participantOpts = participants.map(p => ({
+  const participantOpts = participants.slice(0, MAX_OPTIONS).map(p => ({
     value: p.id,
-    label: `${p.id} — ${p.cohort}, ${p.sex}, ${p.age}y`,
+    label: `${p.id} — ${p.arm}, ${p.sex}, ${p.age}y`,
   }));
 
-  const predictions = useMemo(() => getParticipantPredictions(pid), [pid]);
   const titers = useMemo(() => getParticipantTiters(pid), [pid]);
 
   return (
@@ -119,12 +128,12 @@ export function ParticipantDeepDive() {
         <div>
           <h1 style={{ color: '#E2E8F0', fontSize: 22, fontWeight: 600, margin: 0 }}>Participant Deep Dive</h1>
           <p style={{ color: '#64748B', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
-            Individual-level immunological profile and model predictions
+            Individual-level immunological profile (first {MAX_OPTIONS} participants)
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ color: '#64748B', fontSize: 12 }}>Participant:</span>
-          <DarkSelect value={pid} onChange={setPid} options={participantOpts.slice(0, 60)} />
+          <DarkSelect value={pid} onChange={setPid} options={participantOpts} />
         </div>
       </div>
 
@@ -135,7 +144,7 @@ export function ParticipantDeepDive() {
         </ChartCard>
 
         {/* Radar chart */}
-        <ChartCard title="HAI Titer Radar" subtitle="log₂ titers across strains and timepoints" minHeight={280}>
+        <ChartCard title="HAI Titer Radar" subtitle="log₂ titers — core strains across timepoints" minHeight={300}>
           <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
             <LegendItem color="#8B5CF6" label="Day 0" />
             <LegendItem color="#2E86AB" label="Day 28" />
@@ -145,69 +154,32 @@ export function ParticipantDeepDive() {
         </ChartCard>
       </div>
 
-      {/* Titer table */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <ChartCard title="Titer Summary" subtitle="log₂ HAI values by strain" minHeight={200}>
+      {/* Titer table (all measured strains) */}
+      <ChartCard title="Titer Summary" subtitle="log₂ HAI values by strain — all measured strains" minHeight={200}>
+        <div style={{ overflowY: 'auto', maxHeight: 360 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 {['Strain', 'Day 0', 'Day 28', 'Day 365'].map(h => (
-                  <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#64748B', fontWeight: 500 }}>{h}</th>
+                  <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#64748B', fontWeight: 500, position: 'sticky', top: 0, background: '#1E2130' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {titers.map((t, i) => (
+              {titers.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: '14px 10px', color: '#475569' }}>No titer data for this participant.</td></tr>
+              ) : titers.map((t, i) => (
                 <tr key={t.strain} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 ? 'rgba(255,255,255,0.018)' : 'transparent' }}>
-                  <td style={{ padding: '7px 10px', color: '#94A3B8' }}>{t.strain}</td>
-                  <td style={{ padding: '7px 10px', color: '#8B5CF6', fontFamily: 'monospace' }}>{t.day0}</td>
-                  <td style={{ padding: '7px 10px', color: '#2E86AB', fontFamily: 'monospace' }}>{t.day28}</td>
-                  <td style={{ padding: '7px 10px', color: '#00D9C0', fontFamily: 'monospace' }}>{t.day365}</td>
+                  <td style={{ padding: '7px 10px', color: '#94A3B8' }} title={strainGroup(t.strain)}>{t.strain}</td>
+                  <td style={{ padding: '7px 10px', color: '#8B5CF6', fontFamily: 'monospace' }}>{fmt(t.day0)}</td>
+                  <td style={{ padding: '7px 10px', color: '#2E86AB', fontFamily: 'monospace' }}>{fmt(t.day28)}</td>
+                  <td style={{ padding: '7px 10px', color: '#00D9C0', fontFamily: 'monospace' }}>{fmt(t.day365)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </ChartCard>
-
-        {/* Predictions table */}
-        <ChartCard title="Model Predictions" subtitle="Predicted vs actual per task" minHeight={200}>
-          <div style={{ overflowY: 'auto', maxHeight: 280 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  {['Task', 'Actual', 'Predicted'].map(h => (
-                    <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#64748B', fontWeight: 500, position: 'sticky', top: 0, background: '#1E2130' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {predictions.map((pr, i) => {
-                  const hasData = pr.actual !== null && pr.predicted !== null;
-                  return (
-                    <tr
-                      key={pr.taskId}
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 ? 'rgba(255,255,255,0.018)' : 'transparent' }}
-                    >
-                      <td style={{ padding: '7px 10px', color: '#94A3B8' }} title={pr.label}>{pr.taskId}</td>
-                      {hasData ? (
-                        <>
-                          <td style={{ padding: '7px 10px', color: '#CBD5E1', fontFamily: 'monospace' }}>{pr.actual!.toFixed(3)}</td>
-                          <td style={{ padding: '7px 10px', color: '#2E86AB', fontFamily: 'monospace' }}>{pr.predicted!.toFixed(3)}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ padding: '7px 10px', color: '#475569', fontStyle: 'italic' }}>—</td>
-                          <td style={{ padding: '7px 10px', color: '#475569', fontStyle: 'italic' }}>—</td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </ChartCard>
-      </div>
+        </div>
+      </ChartCard>
     </div>
   );
 }

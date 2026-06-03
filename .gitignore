@@ -20,3 +20,4 @@ cleaned_data/*
 
 #merged_data/*
 !merged_data/.gitkeeppath/to/giant/file
+ImmunoExplorer/

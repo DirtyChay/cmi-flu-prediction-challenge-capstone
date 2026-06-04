@@ -53,9 +53,21 @@ briefly at each `▶`.
 
 ▶ *Hover a bar to show the tooltip.*
 
-> And down here, how complete the data is. For example, the one-year follow-up has fewer
-> measurements than the early visits — and that's the kind of gap that's good to know
-> before you trust any chart.
+▶ *Point at "HAI Measurements by Timepoint."*
+
+> This bottom-left chart shows how many actual antibody measurements we have at each
+> timepoint — before the shot, at four weeks, and at one year. Notice the one-year bar is
+> much shorter: a lot of people didn't come back for that final visit, so any result at one
+> year rests on far less data. That's worth knowing before you read too much into a
+> long-term trend.
+
+▶ *Point at "Strains per Antigenic Group."*
+
+> And this chart sorts the flu strains we tested into their families — the H1N1 and H3N2
+> groups you've probably heard of, plus the influenza B lineages. The taller the bar, the
+> more individual strains we measured in that family. It shows where the study's coverage is
+> deepest: we tested far more strains in some groups than others, which tells you which
+> questions the rest of the app can answer in real detail and which it can only sketch.
 
 > So this first page is your at-a-glance summary of the whole study.
 

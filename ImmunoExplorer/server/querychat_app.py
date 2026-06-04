@@ -27,6 +27,7 @@ from pathlib import Path
 
 import chatlas
 import pandas as pd
+from shiny import App, render, ui
 from querychat import QueryChat
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -94,4 +95,62 @@ qc = QueryChat(
     extra_instructions=EXTRA_INSTRUCTIONS,
 )
 
-app = qc.app()
+# ── Dark theme to match the React dashboard ───────────────────────────────────
+# Bootstrap 5 supports a built-in dark mode via data-bs-theme="dark"; we enable
+# it and override the palette to the dashboard's colors (#0F1117 / #1E2130 / teal).
+DARK_CSS = """
+:root {
+  --bs-body-bg: #0F1117;
+  --bs-body-color: #CBD5E1;
+  --bs-primary: #2E86AB;
+  --bs-primary-rgb: 46,134,171;
+  --bs-border-color: rgba(255,255,255,0.08);
+  --bs-emphasis-color: #E2E8F0;
+}
+body, .bslib-page-sidebar { background-color: #0F1117 !important; }
+.card, .bslib-sidebar-layout > .sidebar, .sidebar {
+  background-color: #1E2130 !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+.card-header { background-color: #181B26 !important; color: #E2E8F0 !important; }
+.form-control, .form-select, textarea {
+  background-color: #0F1117 !important;
+  color: #E2E8F0 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+.btn-primary { background-color: #2E86AB; border-color: #2E86AB; }
+a, .suggestion { color: #00D9C0 !important; }
+"""
+
+app_ui = ui.page_sidebar(
+    qc.sidebar(),
+    ui.card(
+        ui.card_header(ui.output_text("data_title")),
+        ui.output_data_frame("data_table"),
+        fill=True,
+    ),
+    ui.head_content(
+        # Enable Bootstrap dark mode as early as possible to avoid a light flash.
+        ui.tags.script(
+            "document.documentElement.setAttribute('data-bs-theme','dark');"
+        ),
+        ui.tags.style(DARK_CSS),
+    ),
+    title="ImmunoExplorer · train",
+    fillable=True,
+)
+
+
+def server(input, output, session):
+    qc_vals = qc.server()
+
+    @render.data_frame
+    def data_table():
+        return qc_vals.df()
+
+    @render.text
+    def data_title():
+        return qc_vals.title() or "train dataset"
+
+
+app = App(app_ui, server)

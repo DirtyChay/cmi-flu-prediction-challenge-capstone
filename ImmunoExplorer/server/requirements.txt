@@ -3,3 +3,9 @@ uvicorn[standard]==0.30.6
 ollama>=0.3.0
 pandas>=2.0.0
 pydantic>=2.0.0
+
+# querychat data chat (querychat_app.py) — natural language -> SQL over the CSVs
+querychat
+chatlas>=0.6.0
+shiny>=1.0.0
+duckdb>=1.0.0

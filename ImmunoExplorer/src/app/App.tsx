@@ -4,7 +4,7 @@ import { DatasetOverview } from './components/pages/DatasetOverview';
 import { HAITiterExplorer } from './components/pages/HAITiterExplorer';
 import { FeatureCorrelations } from './components/pages/FeatureCorrelations';
 import { ParticipantDeepDive } from './components/pages/ParticipantDeepDive';
-import { ChatPanel } from './components/ChatPanel';
+import { ChatPanelEmbed } from './components/ChatPanelEmbed';
 
 export default function App() {
   const [page, setPage] = useState<PageId>('overview');
@@ -31,7 +31,7 @@ export default function App() {
         {page === 'hai'          && <HAITiterExplorer />}
         {page === 'correlations' && <FeatureCorrelations />}
         {page === 'participant'  && <ParticipantDeepDive />}
-        {page === 'chat'         && <ChatPanel />}
+        {page === 'chat'         && <ChatPanelEmbed />}
       </main>
     </div>
   );

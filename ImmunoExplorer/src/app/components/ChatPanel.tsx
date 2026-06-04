@@ -1,30 +1,40 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
-import {
-  participants, cohortCounts, sexData, ageHistogram, STRAINS, strainD28Coverage,
-  strainBoost, strainTestedCount, sexResponse, ageBaseline,
-} from '../data/mockData';
+// Dataset facts from mockData — only used by the disabled hardcoded prompt below.
+// import {
+//   participants, cohortCounts, sexData, ageHistogram, STRAINS, strainD28Coverage,
+//   strainBoost, strainTestedCount, sexResponse, ageBaseline,
+// } from '../data/mockData';
 
-// Local LLM server (LM Studio / any OpenAI-compatible endpoint)
-const API_BASE = 'http://127.0.0.1:1234';
+// Local LLM server (Ollama's OpenAI-compatible endpoint)
+// Requires Ollama running with CORS enabled, e.g. OLLAMA_ORIGINS=* ollama serve
+const API_BASE = 'http://127.0.0.1:11434';
 
 type Role = 'user' | 'assistant';
 interface Message { role: Role; content: string; }
 
-const mostMissingD28 = strainD28Coverage.slice(0, 10)
-  .map(s => `${s.strain} (${s.missing} missing)`).join('; ');
-const bestCoveredD28 = strainD28Coverage.slice(-8).reverse()
-  .map(s => `${s.strain} (${s.measured} measured)`).join('; ');
-const biggestBoost = strainBoost.slice(0, 6)
-  .map(s => `${s.strain} +${s.medianRise}`).join('; ');
-const fewestTested = strainTestedCount.slice(0, 6)
-  .map(s => `${s.strain} (${s.n} tested)`).join('; ');
-const responseSex = sexResponse
-  .map(s => `${s.sex}: mean log₂ rise +${s.meanRise}`).join('; ');
-const ageBaselineStr = ageBaseline
-  .map(b => `${b.age}: ${b.medianD0}`).join(', ');
+// Derived dataset facts — only used by the disabled hardcoded prompt below.
+// const mostMissingD28 = strainD28Coverage.slice(0, 10)
+//   .map(s => `${s.strain} (${s.missing} missing)`).join('; ');
+// const bestCoveredD28 = strainD28Coverage.slice(-8).reverse()
+//   .map(s => `${s.strain} (${s.measured} measured)`).join('; ');
+// const biggestBoost = strainBoost.slice(0, 6)
+//   .map(s => `${s.strain} +${s.medianRise}`).join('; ');
+// const fewestTested = strainTestedCount.slice(0, 6)
+//   .map(s => `${s.strain} (${s.n} tested)`).join('; ');
+// const responseSex = sexResponse
+//   .map(s => `${s.sex}: mean log₂ rise +${s.meanRise}`).join('; ');
+// const ageBaselineStr = ageBaseline
+//   .map(b => `${b.age}: ${b.medianD0}`).join(', ');
 
-// Ground the model with the real dataset facts so it can answer the suggestions.
+// Generic prompt — no hardcoded dataset facts for now.
+const SYSTEM_PROMPT = `You are a helpful data assistant for the ImmunoExplorer flu-vaccine study dashboard.
+The study tracks HAI antibody titers (log2-transformed) across timepoints Day 0 (baseline),
+Day 28 (post-vaccination), and Day 365 (one year), for participants across several vaccine arms.
+Be concise and use markdown formatting. If a question requires specific numbers you don't have,
+say what data or calculation would be needed rather than inventing figures.`;
+
+/* Hardcoded-facts prompt (disabled for now — kept for reference).
 const SYSTEM_PROMPT = `You are a data assistant for the ImmunoExplorer flu-vaccine study dashboard.
 Answer questions about the train_combined dataset using these known facts:
 - Total participants: ${participants.length}
@@ -41,6 +51,7 @@ Answer questions about the train_combined dataset using these known facts:
 - Vaccine response by sex (higher mean rise = more responsive): ${responseSex}
 - Baseline (Day-0) titer by age group (median log₂): ${ageBaselineStr}
 Be concise. Use only the facts above. This dataset has no transcriptomics or challenge-cohort information, so say so if asked. If a question needs data not listed above, say what would be required.`;
+*/
 
 // LM Studio needs the loaded model's id; fetch it once (fall back to a placeholder).
 let cachedModel: string | null = null;

@@ -79,7 +79,9 @@ Guidelines:
 - Keep replies under 300 words unless a longer explanation is genuinely needed.
 """
 
-MODEL = "llama3.2"
+# MODEL = "llama3.2"
+MODEL = "gemma4"
+
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 app = FastAPI(title="ImmunoExplorer Chat API")
